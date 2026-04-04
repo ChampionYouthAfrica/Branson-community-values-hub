@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Circle border -->
+  <circle cx="100" cy="100" r="94" stroke="#004B87" stroke-width="6" fill="white"/>
+  <circle cx="100" cy="100" r="86" stroke="#004B87" stroke-width="2" fill="white"/>
+
+  <!-- Bull head -->
+  <g transform="translate(100, 95)" fill="#004B87">
+    <!-- Left horn -->
+    <path d="M-35,-25 C-50,-40 -55,-20 -42,-15 L-30,-18 Z" fill="#00A651"/>
+    <!-- Right horn -->
+    <path d="M35,-25 C50,-40 55,-20 42,-15 L30,-18 Z" fill="#00A651"/>
+
+    <!-- Head outline -->
+    <path d="M-30,-20 C-35,-10 -35,5 -28,15 C-22,22 -15,28 -10,32 C-5,36 -3,40 0,42 C3,40 5,36 10,32 C15,28 22,22 28,15 C35,5 35,-10 30,-20 C25,-28 15,-32 0,-32 C-15,-32 -25,-28 -30,-20Z"/>
+
+    <!-- Ears -->
+    <path d="M-30,-18 C-38,-22 -40,-12 -34,-10Z"/>
+    <path d="M30,-18 C38,-22 40,-12 34,-10Z"/>
+
+    <!-- Eyes -->
+    <ellipse cx="-12" cy="-8" rx="4" ry="4.5" fill="white"/>
+    <ellipse cx="12" cy="-8" rx="4" ry="4.5" fill="white"/>
+
+    <!-- Nostrils -->
+    <ellipse cx="-7" cy="14" rx="4" ry="5" fill="white" opacity="0.3"/>
+    <ellipse cx="7" cy="14" rx="4" ry="5" fill="white" opacity="0.3"/>
+    <ellipse cx="-7" cy="15" rx="2.5" ry="3" fill="white" opacity="0.6"/>
+    <ellipse cx="7" cy="15" rx="2.5" ry="3" fill="white" opacity="0.6"/>
+
+    <!-- Nose bridge line -->
+    <line x1="0" y1="2" x2="0" y2="10" stroke="white" stroke-width="1" opacity="0.3"/>
+  </g>
+
+  <!-- BRANSON text arc at top -->
+  <defs>
+    <path id="topArc" d="M 35,100 A 65,65 0 0,1 165,100"/>
+  </defs>
+  <text font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="22" fill="#004B87" letter-spacing="6">
+    <textPath href="#topArc" startOffset="50%" text-anchor="middle">BRANSON</textPath>
+  </text>
+
+  <!-- Bulls text at bottom -->
+  <text x="100" y="168" font-family="'Brush Script MT', 'Segoe Script', cursive" font-size="32" fill="#004B87" text-anchor="middle" font-style="italic">Bulls</text>
+</svg>
