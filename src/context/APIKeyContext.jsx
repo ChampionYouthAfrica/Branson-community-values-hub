@@ -2,7 +2,7 @@ import { createContext, useContext, useState } from 'react';
 
 const APIKeyContext = createContext();
 
-const DEFAULT_KEY = 'REMOVED_API_KEY';
+const DEFAULT_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
 
 export function APIKeyProvider({ children }) {
   const [apiKey, setApiKey] = useState(DEFAULT_KEY);
