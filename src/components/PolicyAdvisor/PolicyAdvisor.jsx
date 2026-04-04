@@ -26,6 +26,11 @@ RESPONSE STYLE — CRITICAL:
 - If the user's situation is ambiguous or you need more details to give accurate guidance, ASK 1-2 clarifying follow-up questions before giving a full answer. For example: "Before I give you specific guidance, can you clarify: Was this during school hours? Has this happened before?"
 - Only give a comprehensive answer if you have enough context. It's better to ask and be accurate than to assume.
 
+WEB SEARCH:
+- You have access to web search. Use it when the user mentions a specific current event, person, incident, or topic you don't have full context on.
+- Search to understand the situation, then connect it back to the relevant bylaws and policy guidance.
+- Don't just summarize the news — focus on how Branson's policies apply to the situation.
+
 CONTENT RULES:
 1. Cite specific bylaw section numbers (e.g., "Section 4.05")
 2. Provide actionable next steps as a numbered list
@@ -79,7 +84,14 @@ export default function PolicyAdvisor({ messages, setMessages }) {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 1024,
+          max_tokens: 2048,
+          tools: [
+            {
+              type: 'web_search_20250305',
+              name: 'web_search',
+              max_uses: 3,
+            },
+          ],
           system: [
             { type: 'text', text: SYSTEM_PROMPT + `\n\nThe user has selected "${languageLabel}" mode. Use this style in your response.` },
             { type: 'text', text: bylawsText },
@@ -96,7 +108,11 @@ export default function PolicyAdvisor({ messages, setMessages }) {
       }
 
       const data = await response.json();
-      const assistantText = data.content[0].text;
+      // Extract text from all text blocks (web search responses have multiple content blocks)
+      const assistantText = data.content
+        .filter((block) => block.type === 'text')
+        .map((block) => block.text)
+        .join('\n\n');
 
       setMessages([...newMessages, { role: 'assistant', content: assistantText }]);
     } catch (err) {
