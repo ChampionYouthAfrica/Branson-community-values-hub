@@ -131,6 +131,21 @@ export default function PolicyAdvisor({ messages, setMessages }) {
     sendMessage(input);
   };
 
+  // Section header colors for the 4 response sections
+  const sectionColors = {
+    'Summary': { bg: 'bg-branson-blue/10', border: 'border-branson-blue/30', icon: '📋' },
+    'Relevant Bylaws': { bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-300 dark:border-amber-700', icon: '📖' },
+    'Recommended Action': { bg: 'bg-branson-green/10', border: 'border-branson-green/30', icon: '✅' },
+    'Who to Contact if You Need Support': { bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-300 dark:border-purple-700', icon: '👤' },
+  };
+
+  const getSectionStyle = (headerText) => {
+    for (const [key, style] of Object.entries(sectionColors)) {
+      if (headerText.includes(key)) return style;
+    }
+    return { bg: 'bg-slate-50 dark:bg-slate-800/50', border: 'border-slate-200 dark:border-slate-700', icon: '•' };
+  };
+
   // Render markdown-like content with section links
   const renderMessageContent = (text) => {
     // Split into lines for block-level rendering
@@ -138,12 +153,77 @@ export default function PolicyAdvisor({ messages, setMessages }) {
     const elements = [];
     let i = 0;
 
+    // Check if line is a section header like **1. Summary** or **Relevant Bylaws**
+    const isSectionHeader = (line) => {
+      const trimmed = line.trim();
+      return /^\*\*\d+\.\s+[^*]+\*\*$/.test(trimmed) || /^\*\*[^*]+\*\*$/.test(trimmed) && trimmed.length < 60;
+    };
+
     while (i < lines.length) {
       const line = lines[i];
 
       // Empty line
       if (line.trim() === '') {
         i++;
+        continue;
+      }
+
+      // Section header — collect all content until next section header
+      if (isSectionHeader(line.trim())) {
+        const headerText = line.trim().replace(/\*\*/g, '').replace(/^\d+\.\s*/, '');
+        const style = getSectionStyle(headerText);
+        const sectionContent = [];
+        i++;
+
+        while (i < lines.length && !isSectionHeader(lines[i].trim())) {
+          if (lines[i].trim() !== '') {
+            sectionContent.push(lines[i]);
+          }
+          i++;
+        }
+
+        elements.push(
+          <div key={`section-${i}`} className={`rounded-lg border ${style.border} ${style.bg} p-3 my-2`}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-base">{style.icon}</span>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-white">{headerText}</h3>
+            </div>
+            <div className="pl-6">
+              {sectionContent.map((contentLine, idx) => {
+                const trimmed = contentLine.trim();
+                // Blockquote inside section
+                if (trimmed.startsWith('> ')) {
+                  return (
+                    <blockquote key={idx} className="border-l-3 border-branson-blue/40 pl-3 my-1.5 text-slate-500 dark:text-slate-400 italic text-[13px]">
+                      {renderInline(trimmed.slice(2))}
+                    </blockquote>
+                  );
+                }
+                // Bullet item inside section
+                if (/^[-*]\s/.test(trimmed)) {
+                  return (
+                    <div key={idx} className="flex items-start gap-2 my-1">
+                      <span className="text-branson-green mt-0.5 text-xs">●</span>
+                      <span className="text-sm text-slate-700 dark:text-slate-200">{renderInline(trimmed.replace(/^[-*]\s/, ''))}</span>
+                    </div>
+                  );
+                }
+                // Numbered item inside section
+                if (/^\d+\.\s/.test(trimmed)) {
+                  const num = trimmed.match(/^(\d+)\./)[1];
+                  return (
+                    <div key={idx} className="flex items-start gap-2 my-1">
+                      <span className="text-branson-blue font-bold text-xs mt-0.5">{num}.</span>
+                      <span className="text-sm text-slate-700 dark:text-slate-200">{renderInline(trimmed.replace(/^\d+\.\s/, ''))}</span>
+                    </div>
+                  );
+                }
+                // Regular text inside section
+                return <p key={idx} className="text-sm text-slate-700 dark:text-slate-200 my-1">{renderInline(trimmed)}</p>;
+              })}
+            </div>
+          </div>
+        );
         continue;
       }
 
