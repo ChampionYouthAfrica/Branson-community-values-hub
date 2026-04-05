@@ -28,7 +28,7 @@ Name the most relevant bylaw section(s) (e.g., "Section 4.05") and explain in 1-
 **3. Recommended Action** (2-4 bullet points max)
 What to say or do — be specific and actionable.
 
-**4. Who to Contact**
+**4. Who to Contact if You Need Support**
 Name the single most relevant administrator or office and their role. Include email if available in the bylaws.
 
 STYLE RULES:
