@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { BookOpen, MessageCircle, ClipboardList, ArrowRight, Sparkles } from 'lucide-react';
+import { BookOpen, MessageCircle, ClipboardList, ArrowRight, Sparkles, FileCheck } from 'lucide-react';
 import bransonLogo from '../../assets/branson-logo.svg';
 
 const features = [
@@ -19,6 +19,15 @@ const features = [
     badge: 'Chat with me!',
     description: 'Describe any situation and get instant, bylaws-based guidance with specific section citations. It\'s like chatting with a colleague who knows every policy.',
     cta: 'Start a Conversation',
+  },
+  {
+    to: '/assessments',
+    icon: FileCheck,
+    color: 'bg-branson-green',
+    title: 'Assessment Rubrics',
+    badge: 'AI-Scored',
+    description: 'Interactive rubrics for vendor evaluation, dietary equity, and food purchasing — scored by AI with actionable recommendations.',
+    cta: 'Start an Assessment',
   },
   {
     to: '/quick-reference',
@@ -66,7 +75,7 @@ export default function Home() {
 
       {/* Feature cards */}
       <div className="max-w-5xl mx-auto px-6 -mt-8 relative z-10 pb-16">
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {features.map((feature) => (
             <Link
               key={feature.to}

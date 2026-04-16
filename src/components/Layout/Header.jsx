@@ -9,6 +9,7 @@ const navItems = [
   { path: '/', label: 'Home' },
   { path: '/bylaws', label: 'Bylaws' },
   { path: '/advisor', label: 'Policy Advisor' },
+  { path: '/assessments', label: 'Assessments' },
   { path: '/quick-reference', label: 'Quick Reference' },
 ];
 
@@ -41,7 +42,7 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
               to={item.path}
               className={clsx(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-colors no-underline',
-                location.pathname === item.path
+                (location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path)))
                   ? 'bg-branson-blue/10 text-branson-blue dark:bg-branson-blue/20 dark:text-blue-300'
                   : 'text-slate-500 dark:text-slate-400 hover:text-branson-blue dark:hover:text-blue-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'
               )}
@@ -71,7 +72,7 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
               onClick={() => setSidebarOpen(false)}
               className={clsx(
                 'block px-4 py-2 rounded-lg text-sm font-medium transition-colors no-underline',
-                location.pathname === item.path
+                (location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path)))
                   ? 'bg-branson-blue/10 text-branson-blue dark:bg-branson-blue/20 dark:text-blue-300'
                   : 'text-slate-500 dark:text-slate-400 hover:text-branson-blue dark:hover:text-blue-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'
               )}

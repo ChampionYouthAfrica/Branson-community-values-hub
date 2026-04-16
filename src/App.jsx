@@ -9,6 +9,10 @@ import Home from './components/Home/Home';
 import BylawsBrowser from './components/BylawsBrowser/BylawsBrowser';
 import PolicyAdvisor from './components/PolicyAdvisor/PolicyAdvisor';
 import QuickReference from './components/QuickReference/QuickReference';
+import AssessmentsHome from './components/Assessments/AssessmentsHome';
+import VendorDEI from './components/Assessments/VendorDEI';
+import DietaryEquity from './components/Assessments/DietaryEquity';
+import FoodPurchasing from './components/Assessments/FoodPurchasing';
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -34,6 +38,10 @@ export default function App() {
                       />
                     }
                   />
+                  <Route path="/assessments" element={<AssessmentsHome />} />
+                  <Route path="/assessments/vendor-dei" element={<VendorDEI />} />
+                  <Route path="/assessments/dietary" element={<DietaryEquity />} />
+                  <Route path="/assessments/food-purchasing" element={<FoodPurchasing />} />
                   <Route path="/quick-reference" element={<QuickReference />} />
                 </Routes>
               </main>
