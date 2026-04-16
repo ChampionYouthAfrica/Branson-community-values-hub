@@ -1,28 +1,19 @@
 import { useState, useRef } from 'react';
-import { ArrowLeft, Send, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Send, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { DIETARY_QUESTIONS } from './assessmentData';
 import MatrixQuestion from './MatrixQuestion';
-import AutoResearch from './AutoResearch';
 import ScoreCard from './ScoreCard';
 import useAIScoring from './useAIScoring';
 
 export default function DietaryEquity() {
   const [answers, setAnswers] = useState({});
-  const [confidence, setConfidence] = useState({});
-  const [autoFilled, setAutoFilled] = useState(false);
   const resultRef = useRef(null);
   const { isScoring, scoreResult, scoreError, scoreForm } = useAIScoring();
 
   const answered = Object.keys(answers).length;
   const total = DIETARY_QUESTIONS.length;
   const progress = Math.round((answered / total) * 100);
-
-  const handleAutoFill = (result) => {
-    if (result.answers) setAnswers(result.answers);
-    if (result.confidence) setConfidence(result.confidence);
-    setAutoFilled(true);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,19 +32,6 @@ export default function DietaryEquity() {
         This form is designed to assist in identifying how to be most inclusive to all people when providing nutrition.
         Once completed, the form will be scored by AI with recommendations.
       </p>
-
-      <AutoResearch
-        formType="dietary"
-        questions={DIETARY_QUESTIONS}
-        onAutoFill={handleAutoFill}
-      />
-
-      {autoFilled && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-branson-green/10 border border-branson-green/30 text-branson-green text-sm font-medium mb-6">
-          <CheckCircle size={16} />
-          Auto-filled by AI research. Review answers before submitting for final scoring.
-        </div>
-      )}
 
       {/* Progress */}
       <div className="mb-6">
@@ -74,7 +52,6 @@ export default function DietaryEquity() {
               index={i}
               question={q}
               value={answers[`q${i + 1}`]}
-              confidence={confidence[`q${i + 1}`]}
               onChange={(val) => setAnswers({ ...answers, [`q${i + 1}`]: val })}
             />
           ))}

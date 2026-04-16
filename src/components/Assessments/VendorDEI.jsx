@@ -73,9 +73,24 @@ export default function VendorDEI() {
       />
 
       {autoFilled && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-branson-green/10 border border-branson-green/30 text-branson-green text-sm font-medium mb-6">
-          <CheckCircle size={16} />
-          Auto-filled by AI research. Review answers before submitting for final scoring.
+        <div className="rounded-xl border border-branson-green/30 bg-branson-green/5 p-4 mb-6 space-y-2">
+          <div className="flex items-center gap-2 text-branson-green text-sm font-semibold">
+            <CheckCircle size={16} />
+            DEI questions auto-filled by AI research
+          </div>
+          <p className="text-xs text-slate-600 dark:text-slate-400 ml-6">
+            The assessment questions below were filled based on web research. Questions marked with a <span className="inline-block w-3 h-3 rounded border-2 border-yellow-400 align-middle mx-0.5" /> yellow border had low confidence — please double-check those.
+          </p>
+          <p className="text-xs font-medium text-slate-700 dark:text-slate-300 ml-6">
+            &#9998; <strong>You still need to fill in the Vendor Information section manually.</strong>
+          </p>
+        </div>
+      )}
+
+      {/* Vendor info — manual input required */}
+      {autoFilled && (
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider">&#9998; Manual Input Required</span>
         </div>
       )}
 
@@ -146,7 +161,12 @@ export default function VendorDEI() {
         </div>
 
         {/* Matrix Questions */}
-        <h2 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-4">DEI Assessment</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">DEI Assessment</h2>
+          {autoFilled && (
+            <span className="text-xs font-medium text-branson-green bg-branson-green/10 px-2 py-0.5 rounded-full">Auto-filled by AI</span>
+          )}
+        </div>
         <div className="space-y-3 mb-8">
           {VENDOR_DEI_QUESTIONS.map((q, i) => (
             <MatrixQuestion

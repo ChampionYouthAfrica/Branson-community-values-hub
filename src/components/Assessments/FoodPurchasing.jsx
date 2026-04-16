@@ -1,14 +1,12 @@
 import { useState, useRef } from 'react';
-import { ArrowLeft, Send, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Send, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FOOD_PURCHASING_CHECKBOXES } from './assessmentData';
-import AutoResearch from './AutoResearch';
 import ScoreCard from './ScoreCard';
 import useAIScoring from './useAIScoring';
 
 export default function FoodPurchasing() {
   const [checked, setChecked] = useState([]);
-  const [autoFilled, setAutoFilled] = useState(false);
   const [fields, setFields] = useState({
     budgetManager: '',
     vendorName: '',
@@ -24,27 +22,6 @@ export default function FoodPurchasing() {
 
   const toggleCheck = (idx) => {
     setChecked(checked.includes(idx) ? checked.filter((i) => i !== idx) : [...checked, idx]);
-  };
-
-  const handleAutoFill = (result) => {
-    // For checkbox forms, auto-research maps answers to checked items
-    if (result.answers) {
-      const newChecked = [];
-      Object.entries(result.answers).forEach(([key, val]) => {
-        const idx = parseInt(key.replace('q', '')) - 1;
-        if (val === 'policy' || val === 'practice' || val === 'working') {
-          newChecked.push(idx);
-        }
-      });
-      setChecked(newChecked);
-    }
-    if (result.companyInfo) {
-      setFields((prev) => ({
-        ...prev,
-        vendorName: result.companyInfo.description ? prev.vendorName : prev.vendorName,
-      }));
-    }
-    setAutoFilled(true);
   };
 
   const handleSubmit = async (e) => {
@@ -64,19 +41,6 @@ export default function FoodPurchasing() {
       <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
         Branson strives to use sustainable practices, inclusive to people and planet, in the vendors we work with and the food we provide on campus and at school events.
       </p>
-
-      <AutoResearch
-        formType="food-purchasing"
-        questions={FOOD_PURCHASING_CHECKBOXES}
-        onAutoFill={handleAutoFill}
-      />
-
-      {autoFilled && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-branson-green/10 border border-branson-green/30 text-branson-green text-sm font-medium mb-6">
-          <CheckCircle size={16} />
-          Auto-filled by AI research. Review answers before submitting for final scoring.
-        </div>
-      )}
 
       <form onSubmit={handleSubmit}>
         {/* Info fields */}
