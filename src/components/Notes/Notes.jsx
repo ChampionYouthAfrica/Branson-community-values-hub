@@ -8,7 +8,7 @@ const MASTER_CODE = import.meta.env.VITE_NOTES_MASTER_CODE || '1234';
 export default function Notes() {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
-  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem('notes_master') === 'true');
+  const [unlocked, setUnlocked] = useState(false); // always locked on page load — must enter from memory
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showNewCase, setShowNewCase] = useState(false);
@@ -40,7 +40,6 @@ export default function Notes() {
   const handleMasterCode = (e) => {
     e.preventDefault();
     if (input === MASTER_CODE) {
-      sessionStorage.setItem('notes_master', 'true');
       setUnlocked(true);
       setError('');
     } else {
@@ -116,7 +115,7 @@ export default function Notes() {
               Enter the master access code to continue
             </p>
           </div>
-          <form onSubmit={handleMasterCode} className="space-y-4">
+          <form onSubmit={handleMasterCode} className="space-y-4" autoComplete="off">
             <input
               type="password"
               value={input}
@@ -124,6 +123,9 @@ export default function Notes() {
               placeholder="Enter master code"
               className="w-full px-4 py-3 text-center text-xl tracking-widest font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-branson-blue"
               maxLength={8}
+              autoComplete="new-password"
+              data-lpignore="true"
+              data-1p-ignore
               autoFocus
             />
             {error && <p className="text-red-500 text-sm text-center">{error}</p>}

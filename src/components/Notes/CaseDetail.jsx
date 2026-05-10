@@ -282,7 +282,7 @@ export default function CaseDetail() {
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">{caseData.title}</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Enter the 4-digit case passcode</p>
           </div>
-          <form onSubmit={handlePasscode} className="space-y-4">
+          <form onSubmit={handlePasscode} className="space-y-4" autoComplete="off">
             <input
               type="password"
               value={passcodeInput}
@@ -290,6 +290,9 @@ export default function CaseDetail() {
               placeholder="• • • •"
               className="w-full px-4 py-3 text-center text-2xl tracking-widest font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-branson-blue"
               maxLength={4}
+              autoComplete="new-password"
+              data-lpignore="true"
+              data-1p-ignore
               autoFocus
             />
             {passcodeError && <p className="text-red-500 text-sm text-center">{passcodeError}</p>}
