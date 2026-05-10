@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Lock, Wifi, WifiOff, Upload, Copy, Check,
-  Users, Send, Pencil, Trash2, X,
+  Users, Send, Pencil, Trash2, X, Loader2,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useAPIKey } from '../../context/APIKeyContext';
 
 /* ── Helpers ── */
 const COLORS = [
@@ -42,6 +43,7 @@ function fmtTime(ts) {
 
 export default function CaseDetail() {
   const { id } = useParams();
+  const { apiKey } = useAPIKey();
 
   /* ── Case data ── */
   const [caseData, setCaseData] = useState(null);
@@ -67,6 +69,7 @@ export default function CaseDetail() {
   const [entries, setEntries] = useState([]);
   const [draftText, setDraftText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState('');
 
@@ -219,24 +222,91 @@ export default function CaseDetail() {
     await saveEntries(next);
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const entry = {
-        id: `${Date.now()}-upload`,
-        author: authorName,
-        text: ev.target.result,
-        timestamp: new Date().toISOString(),
-        uploadedFile: file.name,
-      };
-      const next = [...entries, entry];
-      setEntries(next);
-      await saveEntries(next);
-    };
-    reader.readAsText(file);
     e.target.value = '';
+
+    const isText = file.type === 'text/plain' || file.name.endsWith('.md');
+
+    if (isText) {
+      // Plain text — read directly
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const entry = {
+          id: `${Date.now()}-upload`,
+          author: authorName,
+          text: ev.target.result,
+          timestamp: new Date().toISOString(),
+          uploadedFile: file.name,
+        };
+        const next = [...entries, entry];
+        setEntries(next);
+        await saveEntries(next);
+      };
+      reader.readAsText(file);
+    } else {
+      // PDF or image — extract text via Claude vision
+      setUploading(true);
+      try {
+        const reader = new FileReader();
+        const base64 = await new Promise((resolve, reject) => {
+          reader.onload = (ev) => resolve(ev.target.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        const isPDF = file.type === 'application/pdf';
+        const contentBlock = isPDF
+          ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+          : { type: 'image', source: { type: 'base64', media_type: file.type, data: base64 } };
+
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 2048,
+            messages: [{
+              role: 'user',
+              content: [
+                contentBlock,
+                {
+                  type: 'text',
+                  text: isPDF
+                    ? 'Extract and transcribe all text from this PDF exactly as it appears. Preserve structure and formatting as plain text.'
+                    : 'Transcribe all visible text from this screenshot or image exactly as it appears. If it contains handwritten or typed notes, extract every word. Preserve the structure as plain text.',
+                },
+              ],
+            }],
+          }),
+        });
+
+        if (!res.ok) throw new Error(`API error ${res.status}`);
+        const data = await res.json();
+        const extracted = data.content.find((b) => b.type === 'text')?.text || '(No text extracted)';
+
+        const entry = {
+          id: `${Date.now()}-upload`,
+          author: authorName,
+          text: extracted,
+          timestamp: new Date().toISOString(),
+          uploadedFile: file.name,
+        };
+        const next = [...entries, entry];
+        setEntries(next);
+        await saveEntries(next);
+      } catch (err) {
+        console.error('File extraction failed:', err);
+      } finally {
+        setUploading(false);
+      }
+    }
   };
 
   const copyPasscode = () => {
@@ -368,10 +438,14 @@ export default function CaseDetail() {
           <button onClick={copyPasscode} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-500 hover:text-branson-blue hover:border-branson-blue/40 transition-colors cursor-pointer">
             {copied ? <><Check size={12} className="text-branson-green" /> Copied!</> : <><Copy size={12} /> Share Passcode</>}
           </button>
-          <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-500 hover:text-branson-blue hover:border-branson-blue/40 transition-colors cursor-pointer">
-            <Upload size={12} /> Upload Notes
+          <button
+            onClick={() => !uploading && fileInputRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-500 hover:text-branson-blue hover:border-branson-blue/40 disabled:opacity-50 transition-colors cursor-pointer"
+          >
+            {uploading ? <><Loader2 size={12} className="animate-spin" /> Extracting…</> : <><Upload size={12} /> Upload Notes</>}
           </button>
-          <input ref={fileInputRef} type="file" accept=".txt,.md" onChange={handleFileUpload} className="hidden" />
+          <input ref={fileInputRef} type="file" accept=".txt,.md,.pdf,.png,.jpg,.jpeg,.webp" onChange={handleFileUpload} className="hidden" />
         </div>
       </div>
 
