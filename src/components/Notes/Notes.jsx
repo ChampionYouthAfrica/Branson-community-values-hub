@@ -14,8 +14,10 @@ export default function Notes() {
   const [showNewCase, setShowNewCase] = useState(false);
   const [newCaseTitle, setNewCaseTitle] = useState('');
   const [newCasePasscode, setNewCasePasscode] = useState('');
+  const [newCaseCustomCode, setNewCaseCustomCode] = useState('');
   const [newCaseId, setNewCaseId] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [codeError, setCodeError] = useState('');
   const [copied, setCopied] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const navigate = useNavigate();
@@ -50,16 +52,20 @@ export default function Notes() {
   const handleNewCase = async (e) => {
     e.preventDefault();
     if (!supabase) return;
+    if (newCaseCustomCode.length !== 4 || !/^\d{4}$/.test(newCaseCustomCode)) {
+      setCodeError('Passcode must be exactly 4 digits.');
+      return;
+    }
+    setCodeError('');
     setCreating(true);
-    const passcode = Math.floor(1000 + Math.random() * 9000).toString();
     const { data, error: insertError } = await supabase
       .from('cases')
-      .insert([{ title: newCaseTitle, passcode, content: '' }])
+      .insert([{ title: newCaseTitle, passcode: newCaseCustomCode, content: '' }])
       .select()
       .single();
     if (!insertError && data) {
       setCases((prev) => [data, ...prev]);
-      setNewCasePasscode(passcode);
+      setNewCasePasscode(newCaseCustomCode);
       setNewCaseId(data.id);
     }
     setCreating(false);
@@ -82,14 +88,18 @@ export default function Notes() {
     setShowNewCase(true);
     setNewCasePasscode('');
     setNewCaseTitle('');
+    setNewCaseCustomCode('');
     setNewCaseId(null);
+    setCodeError('');
   };
 
   const closeNewCaseModal = () => {
     setShowNewCase(false);
     setNewCasePasscode('');
     setNewCaseTitle('');
+    setNewCaseCustomCode('');
     setNewCaseId(null);
+    setCodeError('');
   };
 
   /* ── Lock screen ── */
@@ -168,6 +178,22 @@ export default function Notes() {
                       className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-branson-blue"
                       autoFocus
                     />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">
+                      4-Digit Case Passcode *
+                    </label>
+                    <p className="text-xs text-slate-400 mb-2">Choose a code to share only with teachers who need access to this case.</p>
+                    <input
+                      type="password"
+                      required
+                      value={newCaseCustomCode}
+                      onChange={(e) => { setNewCaseCustomCode(e.target.value.replace(/\D/g, '').slice(0, 4)); setCodeError(''); }}
+                      placeholder="• • • •"
+                      className={`w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-lg text-sm text-center tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-branson-blue ${codeError ? 'border-red-400' : 'border-slate-200 dark:border-slate-700'}`}
+                      maxLength={4}
+                    />
+                    {codeError && <p className="text-red-500 text-xs mt-1">{codeError}</p>}
                   </div>
                   <div className="flex gap-3">
                     <button
