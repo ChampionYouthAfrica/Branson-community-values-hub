@@ -371,89 +371,112 @@ export default function CaseDetail() {
         </div>
       </div>
 
-      {/* Feed */}
-      <div className="flex-1 space-y-5 mb-5 min-h-[280px]">
-        {entries.length === 0 ? (
-          <div className="text-center py-16 text-slate-400">
-            <p className="text-sm">No notes yet — add the first one below.</p>
-          </div>
-        ) : (
-          entries.map((entry) => {
-            const isMe = entry.author === authorName;
-            const color = authorColor(entry.author);
-            return (
-              <div key={entry.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
-                {/* Avatar */}
-                <div className={`w-8 h-8 rounded-full ${color} flex items-center justify-center text-white text-xs font-bold shrink-0 mt-1`}>
-                  {initials(entry.author)}
-                </div>
-                {/* Content */}
-                <div className={`max-w-[80%] flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
-                  <div className={`flex items-center gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.author}</span>
-                    <span className="text-xs text-slate-400">{fmtTime(entry.timestamp)}</span>
-                    {entry.editedAt && <span className="text-xs text-slate-400 italic">(edited)</span>}
-                    {entry.uploadedFile && (
-                      <span className="text-xs text-branson-blue font-medium">📎 {entry.uploadedFile}</span>
-                    )}
-                  </div>
-
-                  {editingId === entry.id ? (
-                    <div className="w-full space-y-2">
-                      <textarea
-                        value={editingText}
-                        onChange={(e) => setEditingText(e.target.value)}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-branson-blue rounded-xl text-sm resize-none focus:outline-none"
-                        rows={3}
-                        autoFocus
-                      />
-                      <div className="flex gap-2 justify-end">
-                        <button onClick={() => setEditingId(null)} className="px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
-                          <X size={12} />
-                        </button>
-                        <button onClick={() => handleEditSave(entry.id)} className="px-3 py-1.5 text-xs bg-branson-blue text-white rounded-lg hover:opacity-90 cursor-pointer">
-                          Save
-                        </button>
+      {/* Document body */}
+      <div className="flex-1 mb-5">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
+          {entries.length === 0 ? (
+            <div className="text-center py-16 text-slate-400">
+              <p className="text-sm">No notes yet — add the first entry below.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {entries.map((entry) => {
+                const isMe = entry.author === authorName;
+                const color = authorColor(entry.author);
+                const dotColors = {
+                  'bg-blue-500': 'bg-blue-500',
+                  'bg-purple-500': 'bg-purple-500',
+                  'bg-emerald-600': 'bg-emerald-600',
+                  'bg-orange-500': 'bg-orange-500',
+                  'bg-pink-500': 'bg-pink-500',
+                  'bg-teal-500': 'bg-teal-500',
+                  'bg-red-500': 'bg-red-500',
+                  'bg-indigo-500': 'bg-indigo-500',
+                };
+                return (
+                  <div key={entry.id} className="group px-6 py-4">
+                    {/* Author line */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${color} shrink-0`} />
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          {entry.author}
+                        </span>
+                        <span className="text-xs text-slate-400">{fmtTime(entry.timestamp)}</span>
+                        {entry.editedAt && (
+                          <span className="text-xs text-slate-400 italic">(edited)</span>
+                        )}
+                        {entry.uploadedFile && (
+                          <span className="text-xs text-branson-blue font-medium">📎 {entry.uploadedFile}</span>
+                        )}
                       </div>
-                    </div>
-                  ) : (
-                    <div className={`group relative px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed ${
-                      isMe
-                        ? 'bg-branson-blue text-white rounded-tr-none'
-                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-tl-none'
-                    }`}>
-                      {entry.text}
-                      {isMe && entry.id !== 'legacy' && (
-                        <div className="absolute -top-2 left-2 hidden group-hover:flex gap-1">
+                      {/* Edit/delete — only on your own entries */}
+                      {isMe && entry.id !== 'legacy' && editingId !== entry.id && (
+                        <div className="hidden group-hover:flex items-center gap-1">
                           <button
                             onClick={() => { setEditingId(entry.id); setEditingText(entry.text); }}
-                            className="p-1 rounded-md bg-slate-700 text-white hover:bg-slate-600 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-branson-blue hover:bg-branson-blue/10 transition-colors cursor-pointer"
                           >
-                            <Pencil size={10} />
+                            <Pencil size={13} />
                           </button>
                           <button
                             onClick={() => handleDeleteEntry(entry.id)}
-                            className="p-1 rounded-md bg-slate-700 text-white hover:bg-red-500 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                           >
-                            <Trash2 size={10} />
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
-        <div ref={feedEndRef} />
+
+                    {/* Content */}
+                    {editingId === entry.id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={editingText}
+                          onChange={(e) => setEditingText(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-branson-blue/50 rounded-lg text-sm text-slate-700 dark:text-slate-300 resize-none focus:outline-none focus:ring-2 focus:ring-branson-blue/30 leading-relaxed"
+                          rows={4}
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 text-slate-500 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                          >
+                            <X size={12} /> Cancel
+                          </button>
+                          <button
+                            onClick={() => handleEditSave(entry.id)}
+                            className="px-3 py-1.5 text-xs bg-branson-blue text-white rounded-lg hover:opacity-90 cursor-pointer"
+                          >
+                            Save changes
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap pl-4 border-l-2 border-slate-100 dark:border-slate-700">
+                        {entry.text}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div ref={feedEndRef} />
+        </div>
       </div>
 
-      {/* Composer */}
+      {/* Write area */}
       <div className="sticky bottom-0 bg-slate-50 dark:bg-slate-950 pt-2 pb-3">
-        <div className="flex items-end gap-3 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm">
-          <div className={`w-7 h-7 rounded-full ${authorColor(authorName)} flex items-center justify-center text-white text-xs font-bold shrink-0 mb-0.5`}>
-            {initials(authorName)}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
+          {/* Author badge */}
+          <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+            <div className={`w-2.5 h-2.5 rounded-full ${authorColor(authorName)}`} />
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Writing as {authorName}
+            </span>
           </div>
           <textarea
             value={draftText}
@@ -461,19 +484,21 @@ export default function CaseDetail() {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handlePost();
             }}
-            placeholder={`Note as ${authorName}… (⌘↵ to post)`}
-            className="flex-1 bg-transparent text-sm text-slate-700 dark:text-slate-300 resize-none focus:outline-none min-h-[40px] max-h-[160px] py-1"
-            rows={2}
+            placeholder="Add your notes here…"
+            className="w-full px-4 py-2 bg-transparent text-sm text-slate-700 dark:text-slate-300 resize-none focus:outline-none leading-relaxed min-h-[80px] max-h-[200px]"
+            rows={3}
           />
-          <button
-            onClick={handlePost}
-            disabled={!draftText.trim() || posting}
-            className="p-2 bg-branson-blue text-white rounded-xl hover:opacity-90 disabled:opacity-40 transition-opacity cursor-pointer shrink-0"
-          >
-            <Send size={16} />
-          </button>
+          <div className="flex items-center justify-between px-4 pb-3">
+            <span className="text-xs text-slate-400">⌘↵ to add · syncs live</span>
+            <button
+              onClick={handlePost}
+              disabled={!draftText.trim() || posting}
+              className="flex items-center gap-1.5 px-4 py-2 bg-branson-blue text-white rounded-lg text-xs font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity cursor-pointer"
+            >
+              <Send size={13} /> Add to Document
+            </button>
+          </div>
         </div>
-        <p className="text-xs text-slate-400 text-center mt-1.5">⌘↵ to post · syncs live to all editors</p>
       </div>
     </div>
   );
