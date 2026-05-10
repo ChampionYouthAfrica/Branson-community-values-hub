@@ -95,28 +95,29 @@ export default function CaseDetail() {
     load();
   }, [id]);
 
-  /* ── Realtime ── */
+  /* ── Polling — guaranteed sync every 2s ── */
   useEffect(() => {
-    if (!unlocked || !nameConfirmed || !caseData) return;
+    if (!unlocked || !nameConfirmed) return;
 
-    const fetchLatest = async () => {
+    const poll = setInterval(async () => {
+      if (isLocalChange.current) return; // skip while we're mid-save
       const { data } = await supabase
         .from('cases').select('content').eq('id', id).single();
       if (data) setEntries(parseContent(data.content));
-    };
+    }, 2000);
+
+    return () => clearInterval(poll);
+  }, [unlocked, nameConfirmed, id]);
+
+  /* ── Realtime broadcast (bonus — instant when websocket is alive) ── */
+  useEffect(() => {
+    if (!unlocked || !nameConfirmed || !caseData) return;
 
     const channel = supabase
       .channel(`case-${id}`, { config: { broadcast: { self: false } } })
-      // ── Instant broadcast (sub-100ms, like a text message) ──
       .on('broadcast', { event: 'entries_update' }, ({ payload }) => {
-        setEntries(payload.entries);
+        if (!isLocalChange.current) setEntries(payload.entries);
       })
-      // ── DB fallback for late-joiners / reconnects ──
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'cases', filter: `id=eq.${id}` },
-        () => { if (!isLocalChange.current) fetchLatest(); }
-      )
       .on('presence', { event: 'sync' }, () => {
         setCollaborators(Object.keys(channel.presenceState()).length);
       })
@@ -134,7 +135,7 @@ export default function CaseDetail() {
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [unlocked, nameConfirmed, caseData, id, authorName]);
+  }, [unlocked, nameConfirmed, caseData?.id, id, authorName]);
 
   /* ── Scroll to bottom when new entries arrive ── */
   useEffect(() => {
