@@ -25,6 +25,7 @@ export default function Notes() {
   }, [unlocked]);
 
   const loadCases = async () => {
+    if (!supabase) return;
     setLoading(true);
     const { data } = await supabase
       .from('cases')
@@ -48,6 +49,7 @@ export default function Notes() {
 
   const handleNewCase = async (e) => {
     e.preventDefault();
+    if (!supabase) return;
     setCreating(true);
     const passcode = Math.floor(1000 + Math.random() * 9000).toString();
     const { data, error: insertError } = await supabase
@@ -64,6 +66,7 @@ export default function Notes() {
   };
 
   const handleDeleteCase = async (id) => {
+    if (!supabase) return;
     await supabase.from('cases').delete().eq('id', id);
     setCases((prev) => prev.filter((c) => c.id !== id));
     setDeleteConfirm(null);
