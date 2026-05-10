@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { BookOpen, MessageCircle, ClipboardList, ArrowRight, Sparkles, FileCheck } from 'lucide-react';
+import { BookOpen, MessageCircle, ClipboardList, ArrowRight, Sparkles, FileCheck, NotebookPen } from 'lucide-react';
 import bransonLogo from '../../assets/branson-logo.svg';
 
 const features = [
@@ -28,6 +28,15 @@ const features = [
     badge: 'AI-Scored',
     description: 'Interactive rubrics for vendor evaluation, dietary equity, and food purchasing — scored by AI with actionable recommendations.',
     cta: 'Start an Assessment',
+  },
+  {
+    to: '/notes',
+    icon: NotebookPen,
+    color: 'bg-slate-700',
+    title: 'Case Notes',
+    badge: 'Staff Only',
+    description: 'Passcode-protected collaborative notes for documenting situations. Real-time editing between teachers, with file upload support.',
+    cta: 'Open Notes',
   },
   {
     to: '/quick-reference',
@@ -75,7 +84,7 @@ export default function Home() {
 
       {/* Feature cards */}
       <div className="max-w-5xl mx-auto px-6 -mt-8 relative z-10 pb-16">
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature) => (
             <Link
               key={feature.to}

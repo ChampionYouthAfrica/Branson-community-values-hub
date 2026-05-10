@@ -13,6 +13,8 @@ import AssessmentsHome from './components/Assessments/AssessmentsHome';
 import VendorDEI from './components/Assessments/VendorDEI';
 import DietaryEquity from './components/Assessments/DietaryEquity';
 import FoodPurchasing from './components/Assessments/FoodPurchasing';
+import Notes from './components/Notes/Notes';
+import CaseDetail from './components/Notes/CaseDetail';
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -42,6 +44,8 @@ export default function App() {
                   <Route path="/assessments/vendor-dei" element={<VendorDEI />} />
                   <Route path="/assessments/dietary" element={<DietaryEquity />} />
                   <Route path="/assessments/food-purchasing" element={<FoodPurchasing />} />
+                  <Route path="/notes" element={<Notes />} />
+                  <Route path="/notes/:id" element={<CaseDetail />} />
                   <Route path="/quick-reference" element={<QuickReference />} />
                 </Routes>
               </main>

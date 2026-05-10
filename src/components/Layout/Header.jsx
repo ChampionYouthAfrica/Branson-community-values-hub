@@ -10,6 +10,7 @@ const navItems = [
   { path: '/bylaws', label: 'Bylaws' },
   { path: '/advisor', label: 'Policy Advisor' },
   { path: '/assessments', label: 'Assessments' },
+  { path: '/notes', label: 'Case Notes' },
   { path: '/quick-reference', label: 'Quick Reference' },
 ];
 
