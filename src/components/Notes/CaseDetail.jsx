@@ -78,6 +78,7 @@ export default function CaseDetail() {
   const fileInputRef = useRef(null);
   const feedEndRef = useRef(null);
   const isLocalChange = useRef(false);
+  const channelRef = useRef(null);
 
   /* ── Load case ── */
   useEffect(() => {
@@ -100,22 +101,21 @@ export default function CaseDetail() {
 
     const fetchLatest = async () => {
       const { data } = await supabase
-        .from('cases')
-        .select('content')
-        .eq('id', id)
-        .single();
+        .from('cases').select('content').eq('id', id).single();
       if (data) setEntries(parseContent(data.content));
     };
 
     const channel = supabase
-      .channel(`case-${id}`)
+      .channel(`case-${id}`, { config: { broadcast: { self: false } } })
+      // ── Instant broadcast (sub-100ms, like a text message) ──
+      .on('broadcast', { event: 'entries_update' }, ({ payload }) => {
+        setEntries(payload.entries);
+      })
+      // ── DB fallback for late-joiners / reconnects ──
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'cases', filter: `id=eq.${id}` },
-        () => {
-          // Always fetch fresh — payload.new.content may be missing without REPLICA IDENTITY FULL
-          if (!isLocalChange.current) fetchLatest();
-        }
+        () => { if (!isLocalChange.current) fetchLatest(); }
       )
       .on('presence', { event: 'sync' }, () => {
         setCollaborators(Object.keys(channel.presenceState()).length);
@@ -129,7 +129,11 @@ export default function CaseDetail() {
         }
       });
 
-    return () => supabase.removeChannel(channel);
+    channelRef.current = channel;
+    return () => {
+      supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
   }, [unlocked, nameConfirmed, caseData, id, authorName]);
 
   /* ── Scroll to bottom when new entries arrive ── */
@@ -139,9 +143,16 @@ export default function CaseDetail() {
     }
   }, [entries.length, nameConfirmed]);
 
-  /* ── Save ── */
+  /* ── Save + broadcast ── */
   const saveEntries = useCallback(
     async (next) => {
+      // 1. Broadcast instantly over websocket — other users see it immediately
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'entries_update',
+        payload: { entries: next },
+      });
+      // 2. Persist to DB (async, doesn't block the UI)
       isLocalChange.current = true;
       await supabase
         .from('cases')
