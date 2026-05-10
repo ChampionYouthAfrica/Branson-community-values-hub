@@ -98,15 +98,23 @@ export default function CaseDetail() {
   useEffect(() => {
     if (!unlocked || !nameConfirmed || !caseData) return;
 
+    const fetchLatest = async () => {
+      const { data } = await supabase
+        .from('cases')
+        .select('content')
+        .eq('id', id)
+        .single();
+      if (data) setEntries(parseContent(data.content));
+    };
+
     const channel = supabase
       .channel(`case-${id}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'cases', filter: `id=eq.${id}` },
-        (payload) => {
-          if (!isLocalChange.current) {
-            setEntries(parseContent(payload.new.content));
-          }
+        () => {
+          // Always fetch fresh — payload.new.content may be missing without REPLICA IDENTITY FULL
+          if (!isLocalChange.current) fetchLatest();
         }
       )
       .on('presence', { event: 'sync' }, () => {
