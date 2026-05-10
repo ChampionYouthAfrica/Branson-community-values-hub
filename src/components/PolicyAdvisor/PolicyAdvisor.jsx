@@ -30,6 +30,7 @@ What to say or do — be specific and actionable.
 
 **4. Who to Contact if You Need Support**
 Name the single most relevant administrator or office and their role. Include email if available in the bylaws.
+- IMPORTANT: If the situation involves exclusionary language, slurs, identity-based harassment, microaggressions, hate speech, or any language that targets or excludes someone based on race, ethnicity, gender, sexual orientation, religion, disability, or other identity characteristics, the recommended contact MUST be JuanCarlos (DEI Office).
 
 STYLE RULES:
 - Be BRIEF. The entire response should be 8-12 sentences max.
