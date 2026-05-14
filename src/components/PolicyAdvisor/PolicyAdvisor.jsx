@@ -185,7 +185,7 @@ export default function PolicyAdvisor({ messages, setMessages }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [apiKey, autoSpeak, language, messages, setMessages, speak]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
