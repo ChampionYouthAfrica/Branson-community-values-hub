@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Send, Bot, User, Loader2, AlertCircle, Settings, X, MessageCircle, Mic, MicOff, Volume2, VolumeX, Square } from 'lucide-react';
+import VoiceConversation from './VoiceConversation';
 import clsx from 'clsx';
 import { useAPIKey } from '../../context/APIKeyContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -61,6 +62,7 @@ export default function PolicyAdvisor({ messages, setMessages }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(false);
   const [voiceSupported] = useState(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition));
+  const [voiceOpen, setVoiceOpen] = useState(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -191,6 +193,34 @@ export default function PolicyAdvisor({ messages, setMessages }) {
     e.preventDefault();
     sendMessage(input);
   };
+
+  // Used by VoiceConversation — returns the reply text so it can speak it
+  const sendVoiceMessage = useCallback(async (text) => {
+    if (!apiKey) throw new Error('No API key');
+    const bylawsText = getBylawsAsText(bylawsData, language);
+    const languageLabel = language === 'technical' ? 'standard DEI terminology' : 'plain, student-friendly language';
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 512,
+        system: [
+          { type: 'text', text: SYSTEM_PROMPT + `\n\nIMPORTANT: This is a VOICE conversation. Give a SHORT spoken response — 3 to 5 sentences max. No markdown, no bullet points, no headers. Write it as natural spoken sentences. Use "${languageLabel}" style.` },
+          { type: 'text', text: bylawsText },
+        ],
+        messages: [{ role: 'user', content: text }],
+      }),
+    });
+    if (!response.ok) throw new Error(`API error ${response.status}`);
+    const data = await response.json();
+    return data.content.filter((b) => b.type === 'text').map((b) => b.text).join(' ');
+  }, [apiKey, language]);
 
   // Section header colors for the 4 response sections
   const sectionColors = {
@@ -376,6 +406,11 @@ export default function PolicyAdvisor({ messages, setMessages }) {
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
+      <VoiceConversation
+        isOpen={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onSend={sendVoiceMessage}
+      />
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50">
         <div className="flex items-center gap-3">
@@ -398,6 +433,16 @@ export default function PolicyAdvisor({ messages, setMessages }) {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-branson-green/10 text-branson-green text-xs font-medium hover:bg-branson-green/20 transition-colors cursor-pointer"
             >
               <Square size={12} className="fill-branson-green" /> Stop
+            </button>
+          )}
+          {/* Live voice conversation button */}
+          {voiceSupported && (
+            <button
+              onClick={() => setVoiceOpen(true)}
+              title="Start voice conversation"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-branson-blue text-white text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              <Mic size={14} /> Voice
             </button>
           )}
           {/* Auto-speak toggle */}
