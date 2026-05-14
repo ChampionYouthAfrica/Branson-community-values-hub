@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Send, Bot, User, Loader2, AlertCircle, Settings, X, MessageCircle } from 'lucide-react';
+import { Send, Bot, User, Loader2, AlertCircle, Settings, X, MessageCircle, Mic, MicOff, Volume2, VolumeX, Square } from 'lucide-react';
 import clsx from 'clsx';
 import { useAPIKey } from '../../context/APIKeyContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -56,12 +56,71 @@ export default function PolicyAdvisor({ messages, setMessages }) {
   const [showSettings, setShowSettings] = useState(false);
   const [tempKey, setTempKey] = useState('');
   const messagesEndRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(false);
+  const [voiceSupported] = useState(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition));
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = async (text) => {
+  // Strip markdown for clean speech
+  const stripMarkdown = (text) =>
+    text
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '')
+      .replace(/^#+\s/gm, '')
+      .replace(/^[-•]\s/gm, '')
+      .replace(/^\d+\.\s/gm, '')
+      .replace(/>\s/g, '')
+      .replace(/`/g, '')
+      .trim();
+
+  const speak = useCallback((text) => {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(stripMarkdown(text));
+    utterance.rate = 1.05;
+    utterance.pitch = 1;
+    utterance.lang = 'en-US';
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  };
+
+  const startListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (e) => {
+      const transcript = Array.from(e.results).map((r) => r[0].transcript).join('');
+      setInput(transcript);
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    setIsListening(false);
+  };
+
+  const sendMessage = useCallback(async (text) => {
     if (!text.trim() || isLoading) return;
     if (!apiKey) {
       setError('Please configure your API key to use the advisor.');
@@ -120,6 +179,7 @@ export default function PolicyAdvisor({ messages, setMessages }) {
         .join('\n\n');
 
       setMessages([...newMessages, { role: 'assistant', content: assistantText }]);
+      if (autoSpeak) speak(assistantText);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -331,6 +391,25 @@ export default function PolicyAdvisor({ messages, setMessages }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Stop speaking */}
+          {isSpeaking && (
+            <button
+              onClick={stopSpeaking}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-branson-green/10 text-branson-green text-xs font-medium hover:bg-branson-green/20 transition-colors cursor-pointer"
+            >
+              <Square size={12} className="fill-branson-green" /> Stop
+            </button>
+          )}
+          {/* Auto-speak toggle */}
+          {voiceSupported && (
+            <button
+              onClick={() => setAutoSpeak((v) => !v)}
+              title={autoSpeak ? 'Auto-speak on — click to mute' : 'Auto-speak off — click to enable'}
+              className={`p-2 rounded-lg transition-colors cursor-pointer ${autoSpeak ? 'bg-branson-green/15 text-branson-green' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400'}`}
+            >
+              {autoSpeak ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            </button>
+          )}
           <button
             onClick={() => { setShowSettings(true); setTempKey(apiKey); }}
             className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer"
@@ -472,13 +551,31 @@ export default function PolicyAdvisor({ messages, setMessages }) {
       {/* Input */}
       <form onSubmit={handleSubmit} className="border-t border-slate-200 dark:border-slate-800 p-4">
         <div className="max-w-3xl mx-auto flex gap-2">
+          {/* Mic button */}
+          {voiceSupported && (
+            <button
+              type="button"
+              onClick={isListening ? stopListening : startListening}
+              disabled={!apiKey || isLoading}
+              title={isListening ? 'Stop listening' : 'Speak your question'}
+              className={`px-3 py-3 rounded-xl transition-all cursor-pointer disabled:opacity-40 ${
+                isListening
+                  ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-branson-blue/10 hover:text-branson-blue'
+              }`}
+            >
+              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
+          )}
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={apiKey ? 'Describe your situation...' : 'Configure API key in settings to start...'}
+            placeholder={isListening ? 'Listening… speak now' : apiKey ? 'Describe your situation...' : 'Configure API key in settings to start...'}
             disabled={!apiKey || isLoading}
-            className="flex-1 px-4 py-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-branson-blue disabled:opacity-50"
+            className={`flex-1 px-4 py-3 bg-white dark:bg-slate-800 border rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-branson-blue disabled:opacity-50 transition-colors ${
+              isListening ? 'border-red-400 dark:border-red-500' : 'border-slate-300 dark:border-slate-700'
+            }`}
           />
           <button
             type="submit"
@@ -488,6 +585,11 @@ export default function PolicyAdvisor({ messages, setMessages }) {
             <Send size={18} />
           </button>
         </div>
+        {isListening && (
+          <p className="text-center text-xs text-red-500 mt-2 font-medium animate-pulse">
+            🎙 Listening — speak your question, then press Send
+          </p>
+        )}
       </form>
     </div>
   );

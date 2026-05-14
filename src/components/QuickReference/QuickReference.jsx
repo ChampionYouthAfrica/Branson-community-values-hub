@@ -15,6 +15,7 @@ function SectionHeader({ icon: Icon, title, accent = 'blue' }) {
 
 const contacts = [
   { name: 'Christina Mazzola', title: 'Head of School', email: 'chris_mazzola@branson.org' },
+  { name: 'JuanCarlos Arauz', title: 'Director of Diversity, Equity & Inclusion', email: 'juancarlos_arauz@branson.org' },
   { name: 'Kelsey Acevedo-Soto, LMFT', title: 'Director of Counseling', email: 'kelsey_acevedo-soto@branson.org' },
   { name: 'Whitney Livermore', title: 'Dean of Student Life', email: 'whitney_livermore@branson.org' },
   { name: 'Arthur Lee', title: 'Director of Human Development & Wellness', email: 'arthur_lee@branson.org' },
