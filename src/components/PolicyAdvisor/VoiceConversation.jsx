@@ -30,6 +30,10 @@ const stripMarkdown = (text) =>
     .replace(/\n{2,}/g, ' ')
     .trim();
 
+const ELEVENLABS_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
+// Rachel — clear, warm American female voice
+const ELEVENLABS_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
+
 export default function VoiceConversation({ isOpen, onClose, onSend }) {
   const [phase, setPhase] = useState(STATES.IDLE);
   const [transcript, setTranscript] = useState(''); // current interim
@@ -37,6 +41,7 @@ export default function VoiceConversation({ isOpen, onClose, onSend }) {
   const [error, setError] = useState('');
   const recognitionRef = useRef(null);
   const utteranceRef = useRef(null);
+  const audioRef = useRef(null);
   const activeRef = useRef(false);   // stays true while voice session is live
   const turnsEndRef = useRef(null);
 
@@ -50,6 +55,7 @@ export default function VoiceConversation({ isOpen, onClose, onSend }) {
       activeRef.current = false;
       recognitionRef.current?.abort();
       window.speechSynthesis.cancel();
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
       setPhase(STATES.IDLE);
       setTranscript('');
       setTurns([]);
@@ -57,26 +63,71 @@ export default function VoiceConversation({ isOpen, onClose, onSend }) {
     }
   }, [isOpen]);
 
-  const speak = useCallback((text, onDone) => {
+  const speakBrowser = useCallback((text, onDone) => {
     window.speechSynthesis.cancel();
-    const clean = stripMarkdown(text);
-    const utterance = new SpeechSynthesisUtterance(clean);
-    utterance.rate = 1.05;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
     utterance.pitch = 1;
     utterance.lang = 'en-US';
-
-    // Pick a natural voice if available
     const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(
-      (v) => v.lang.startsWith('en') && (v.name.includes('Samantha') || v.name.includes('Karen') || v.name.includes('Google US English'))
+    // Prefer neural/natural-sounding voices
+    const preferred = voices.find((v) =>
+      v.name.includes('Samantha') ||
+      v.name.includes('Google US English') ||
+      v.name.includes('Microsoft Aria') ||
+      v.name.includes('Microsoft Jenny') ||
+      v.name.includes('Karen')
     );
     if (preferred) utterance.voice = preferred;
-
     utterance.onend = () => { if (activeRef.current) onDone(); };
     utterance.onerror = () => { if (activeRef.current) onDone(); };
     utteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
   }, []);
+
+  const speak = useCallback(async (text, onDone) => {
+    const clean = stripMarkdown(text);
+
+    if (ELEVENLABS_KEY) {
+      try {
+        const res = await fetch(
+          `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
+          {
+            method: 'POST',
+            headers: {
+              Accept: 'audio/mpeg',
+              'Content-Type': 'application/json',
+              'xi-api-key': ELEVENLABS_KEY,
+            },
+            body: JSON.stringify({
+              text: clean,
+              model_id: 'eleven_turbo_v2_5',
+              voice_settings: {
+                stability: 0.45,
+                similarity_boost: 0.8,
+                style: 0.4,
+                use_speaker_boost: true,
+              },
+            }),
+          }
+        );
+        if (!res.ok) throw new Error('ElevenLabs request failed');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = () => { URL.revokeObjectURL(url); if (activeRef.current) onDone(); };
+        audio.onerror = () => { URL.revokeObjectURL(url); if (activeRef.current) onDone(); };
+        audio.play();
+        return;
+      } catch (e) {
+        console.warn('ElevenLabs failed, falling back to browser TTS', e);
+      }
+    }
+
+    // Fallback: browser TTS
+    speakBrowser(clean, onDone);
+  }, [speakBrowser]);
 
   const startListening = useCallback(() => {
     if (!activeRef.current) return;
@@ -163,6 +214,7 @@ export default function VoiceConversation({ isOpen, onClose, onSend }) {
     activeRef.current = false;
     recognitionRef.current?.abort();
     window.speechSynthesis.cancel();
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     setPhase(STATES.IDLE);
     setTranscript('');
   }, []);
