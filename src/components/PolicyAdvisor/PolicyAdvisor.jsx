@@ -7,6 +7,7 @@ import { useAPIKey } from '../../context/APIKeyContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getBylawsAsText } from '../../utils/bylaw-helpers';
 import bylawsData from '../../data/bylaws-content.json';
+import { getLatestModel } from '../../lib/config';
 
 const SUGGESTED_PROMPTS = [
   'A student is being bullied on social media by another student',
@@ -149,7 +150,7 @@ export default function PolicyAdvisor({ messages, setMessages }) {
           'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: await getLatestModel(apiKey),
           max_tokens: 1024,
           tools: [
             {
@@ -208,7 +209,7 @@ export default function PolicyAdvisor({ messages, setMessages }) {
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: CLAUDE_MODEL,
         max_tokens: 512,
         system: [
           { type: 'text', text: SYSTEM_PROMPT + `\n\nIMPORTANT: This is a VOICE conversation. Give a SHORT spoken response — 3 to 5 sentences max. No markdown, no bullet points, no headers. Write it as natural spoken sentences. Use "${languageLabel}" style.` },

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAPIKey } from '../../context/APIKeyContext';
 import { calculateScore } from './assessmentData';
+import { getLatestModel } from '../../lib/config';
 
 export default function useAIScoring() {
   const { apiKey } = useAPIKey();
@@ -56,7 +57,7 @@ Be specific in recommendations — suggest concrete actions, not vague advice. I
           'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: await getLatestModel(apiKey),
           max_tokens: 1024,
           messages: [{ role: 'user', content: prompt }],
         }),
@@ -118,7 +119,7 @@ Be specific — for unchecked items, recommend concrete steps to address them.`;
           'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: await getLatestModel(apiKey),
           max_tokens: 1024,
           messages: [{ role: 'user', content: prompt }],
         }),

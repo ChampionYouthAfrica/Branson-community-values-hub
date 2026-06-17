@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAPIKey } from '../../context/APIKeyContext';
+import { getLatestModel } from '../../lib/config';
 
 /* ── Helpers ── */
 const COLORS = [
@@ -270,7 +271,7 @@ export default function CaseDetail() {
             'anthropic-dangerous-direct-browser-access': 'true',
           },
           body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
+            model: await getLatestModel(apiKey),
             max_tokens: 2048,
             messages: [{
               role: 'user',

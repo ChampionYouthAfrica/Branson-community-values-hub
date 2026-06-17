@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, Loader2, Sparkles } from 'lucide-react';
 import { useAPIKey } from '../../context/APIKeyContext';
+import { getLatestModel } from '../../lib/config';
 
 export default function AutoResearch({ formType, questions, onAutoFill, extraFields }) {
   const { apiKey } = useAPIKey();
@@ -57,7 +58,7 @@ For each confidence value, use "high" if you found direct evidence, "medium" if 
           'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: await getLatestModel(apiKey),
           max_tokens: 2048,
           tools: [
             { type: 'web_search_20250305', name: 'web_search', max_uses: 5 },
