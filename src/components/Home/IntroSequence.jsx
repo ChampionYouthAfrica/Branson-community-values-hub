@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import bransonBull from '../../assets/branson-bull.svg';
+import bransonBull from '../../assets/branson-bull-real.png';
 
 // Full-screen cinematic intro: the bull charges in, energy rings ripple out,
 // then the page is revealed through an expanding portal. Plays once per session.

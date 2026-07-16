@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import PageHero from '../Shared/PageHero';
 import { ArrowLeft, Send, Loader2, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { VENDOR_DEI_QUESTIONS, VENDOR_SERVICES } from './assessmentData';
@@ -56,15 +57,15 @@ export default function VendorDEI() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8">
+    <div>
+      <PageHero
+        title="RFP for Vendors DEI Rubric"
+        subtitle="Evaluate vendor DEI practices. Complete the form and receive an AI-powered score with recommendations."
+      />
+      <div className="max-w-3xl mx-auto px-6 py-8">
       <Link to="/assessments" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-branson-blue mb-6 no-underline">
         <ArrowLeft size={16} /> Back to Assessments
       </Link>
-
-      <h1 className="animate-fade-up text-2xl font-bold text-slate-900 dark:text-white mb-2">RFP for Vendors DEI Rubric</h1>
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
-        Evaluate vendor DEI practices. Complete the form and receive an AI-powered score with recommendations.
-      </p>
 
       <AutoResearch
         formType="vendor-dei"
@@ -201,6 +202,7 @@ export default function VendorDEI() {
           <ScoreCard result={scoreResult} />
         </div>
       </form>
+      </div>
     </div>
   );
 }

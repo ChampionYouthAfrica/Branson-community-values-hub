@@ -1,3 +1,4 @@
+import PageHero from '../Shared/PageHero';
 import { Phone, Calendar, ExternalLink, Mail } from 'lucide-react';
 
 function SectionHeader({ icon: Icon, title, accent = 'blue' }) {
@@ -45,13 +46,13 @@ const resources = [
 
 export default function QuickReference() {
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      <div className="mb-10 animate-fade-up">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Quick Reference</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm">Key contacts, training events, and crisis resources — all in one place</p>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3 stagger-children">
+    <div>
+      <PageHero
+        title="Quick Reference"
+        subtitle="Key contacts, training events, and crisis resources — all in one place"
+      />
+      <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="grid gap-6 lg:grid-cols-3">
 
         {/* ── Reporting Contacts ── */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
@@ -128,6 +129,9 @@ export default function QuickReference() {
             ))}
           </div>
         </div>
+
+      </div>
+
 
       </div>
     </div>

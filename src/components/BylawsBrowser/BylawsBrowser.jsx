@@ -164,11 +164,9 @@ export default function BylawsBrowser() {
       <main className="flex-1 overflow-y-auto p-6 lg:p-10">
         <div className="max-w-3xl mx-auto">
           <div className="mb-8">
-            <h1 className="animate-fade-up text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2">
-              {bylawsData.title}
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">{bylawsData.subtitle}</p>
-            <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Effective: {bylawsData.effectiveDate}</p>
+            <PageHero title={bylawsData.title} subtitle={bylawsData.subtitle} rounded>
+              <p className="text-sky-200/70 text-xs mt-2">Effective: {bylawsData.effectiveDate}</p>
+            </PageHero>
           </div>
 
           {bylawsData.articles.map((article) => (

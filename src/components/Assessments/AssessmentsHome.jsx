@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import PageHero from '../Shared/PageHero';
 import { Building2, UtensilsCrossed, ShoppingCart, ArrowRight } from 'lucide-react';
 
 const assessments = [
@@ -30,15 +31,13 @@ const assessments = [
 
 export default function AssessmentsHome() {
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
-      <div className="text-center mb-10 animate-fade-up">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">Assessment Rubrics</h1>
-        <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
-          Interactive rubrics for vendor evaluation, dietary equity, and food purchasing — scored by AI with actionable recommendations.
-        </p>
-      </div>
-
-      <div className="grid gap-5 md:grid-cols-3 stagger-children">
+    <div>
+      <PageHero
+        title="Assessment Rubrics"
+        subtitle="Interactive rubrics for vendor evaluation, dietary equity, and food purchasing — scored by AI with actionable recommendations."
+      />
+      <div className="max-w-5xl mx-auto px-6 py-10">
+      <div className="grid gap-5 md:grid-cols-3">
         {assessments.map((item) => (
           <Link
             key={item.to}
@@ -60,6 +59,7 @@ export default function AssessmentsHome() {
             </span>
           </Link>
         ))}
+      </div>
       </div>
     </div>
   );

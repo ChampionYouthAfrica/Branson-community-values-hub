@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, MessageCircle, ClipboardList, ArrowRight, Sparkles, FileCheck, NotebookPen, ChevronDown } from 'lucide-react';
 import bransonLogo from '../../assets/branson-logo.svg';
-import bransonBull from '../../assets/branson-bull.svg';
+import bransonBull from '../../assets/branson-bull-real.png';
 import IntroSequence from './IntroSequence';
 
 const portals = [
