@@ -88,12 +88,12 @@ body {
 
 /* Shimmering text sweep for hero headline */
 .text-shimmer {
-  background: linear-gradient(110deg, #fff 35%, #7dd3fc 48%, #86efac 52%, #fff 65%);
+  background: linear-gradient(110deg, #fff 38%, #bae6fd 50%, #fff 62%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: shimmer 4s linear infinite;
+  animation: shimmer 5s linear infinite;
 }
 
 /* Animated underline that grows on hover */
@@ -124,7 +124,7 @@ body {
   z-index: 100;
   display: grid;
   place-items: center;
-  background: radial-gradient(ellipse at 50% 40%, #0a5a9e 0%, #003a6b 45%, #001d38 100%);
+  background: radial-gradient(ellipse at 50% 40%, #06365f 0%, #02223f 45%, #010f1f 100%);
   cursor: pointer;
   transition: opacity 0.9s cubic-bezier(0.7, 0, 0.84, 0), transform 0.9s cubic-bezier(0.7, 0, 0.84, 0);
 }
@@ -152,9 +152,21 @@ body {
   display: grid;
   place-items: center;
 }
+/* soft white halo so the blue/green bull pops against the dark backdrop */
+.intro-halo {
+  position: absolute;
+  width: clamp(220px, 46vw, 380px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / 0.92) 0%, rgb(226 244 255 / 0.55) 45%, transparent 72%);
+  filter: blur(6px);
+  animation: glow-pulse 3s ease-in-out infinite;
+  pointer-events: none;
+}
 .intro-bull {
   width: clamp(140px, 30vw, 240px);
-  filter: drop-shadow(0 0 40px rgb(125 211 252 / 0.45));
+  position: relative;
+  filter: drop-shadow(0 0 26px rgb(255 255 255 / 0.55));
 }
 .intro-bull-enter {
   animation: bull-arrive 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both;

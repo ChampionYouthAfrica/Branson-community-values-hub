@@ -18,7 +18,7 @@ export default function PageHero({ title, subtitle, children, rounded = false })
         }}
       />
       <div className="relative max-w-6xl mx-auto px-6 py-10 lg:py-12">
-        <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-2">{title}</h1>
+        <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-white mb-2">{title}</h1>
         {subtitle && (
           <p className="text-sky-100/85 text-sm lg:text-base max-w-2xl leading-relaxed">{subtitle}</p>
         )}

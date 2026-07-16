@@ -26,6 +26,7 @@ export default function IntroSequence({ onDone }) {
     >
       <div className="intro-stars" />
       <div className="intro-center">
+        <div className="intro-halo" />
         <div className={`intro-rings ${phase !== 'enter' ? 'intro-rings-live' : ''}`}>
           <span /><span /><span />
         </div>

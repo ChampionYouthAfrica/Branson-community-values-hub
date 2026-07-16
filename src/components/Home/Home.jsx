@@ -24,8 +24,8 @@ const portals = [
     description: "Describe any situation and get instant, bylaws-based guidance with specific section citations. It's like chatting with a colleague who knows every policy.",
     cta: 'Start a Conversation',
     span: 'lg:col-span-3',
-    gradient: 'from-[#00512f] via-[#00734a] to-[#00A651]',
-    glow: '#4ade80',
+    gradient: 'from-[#064430] via-[#0a5c40] to-[#0e7a52]',
+    glow: '#6ee7b7',
   },
   {
     to: '/assessments',
@@ -35,8 +35,8 @@ const portals = [
     description: 'Interactive rubrics for vendor evaluation, dietary equity, and food purchasing — scored by AI.',
     cta: 'Start an Assessment',
     span: 'lg:col-span-2',
-    gradient: 'from-[#134e4a] via-[#0f766e] to-[#14b8a6]',
-    glow: '#2dd4bf',
+    gradient: 'from-[#0f2a43] via-[#17395c] to-[#1f4a75]',
+    glow: '#7dd3fc',
   },
   {
     to: '/notes',
@@ -56,8 +56,8 @@ const portals = [
     description: 'Reporting contacts, checklists, training calendar, and crisis hotlines — all in one place.',
     cta: 'View Resources',
     span: 'lg:col-span-2',
-    gradient: 'from-[#312e81] via-[#3730a3] to-[#4f46e5]',
-    glow: '#818cf8',
+    gradient: 'from-[#06283f] via-[#0b3a5e] to-[#11507f]',
+    glow: '#93c5fd',
   },
 ];
 
@@ -95,7 +95,7 @@ function PortalTile({ portal, index }) {
       </div>
 
       <div className="flex items-center gap-2.5 mb-2 flex-wrap">
-        <h3 className="text-xl lg:text-2xl font-extrabold text-white tracking-tight">
+        <h3 className="text-xl lg:text-2xl font-bold text-white tracking-tight">
           {portal.title}
         </h3>
         {portal.badge && (
@@ -168,7 +168,7 @@ export default function Home() {
             </div>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight mb-6 leading-none" style={{ perspective: '600px' }}>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-none" style={{ perspective: '600px' }}>
             {headline.map((word, i) => (
               <span
                 key={word}

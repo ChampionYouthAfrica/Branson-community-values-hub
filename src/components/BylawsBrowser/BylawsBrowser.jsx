@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Search, X, ChevronDown, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
+import PageHero from '../Shared/PageHero';
 import { useLanguage } from '../../context/LanguageContext';
 import { getSectionText, searchBylaws } from '../../utils/bylaw-helpers';
 import bylawsData from '../../data/bylaws-content.json';
