@@ -48,13 +48,10 @@ Respond with ONLY valid JSON:
 
 Be specific in recommendations — suggest concrete actions, not vague advice. If most answers are "unknown", recommend starting with the most impactful areas first.`;
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/claude', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
           model: await getLatestModel(apiKey),
@@ -110,13 +107,10 @@ Respond with ONLY valid JSON:
 
 Be specific — for unchecked items, recommend concrete steps to address them.`;
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/claude', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
           model: await getLatestModel(apiKey),

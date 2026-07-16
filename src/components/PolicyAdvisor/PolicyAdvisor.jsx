@@ -141,13 +141,10 @@ export default function PolicyAdvisor({ messages, setMessages }) {
       const bylawsText = getBylawsAsText(bylawsData, language);
       const languageLabel = language === 'technical' ? 'standard DEI terminology' : 'plain, student-friendly language';
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/claude', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
           model: await getLatestModel(apiKey),
@@ -169,7 +166,7 @@ export default function PolicyAdvisor({ messages, setMessages }) {
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        if (response.status === 401) throw new Error('Invalid API key. Please check your key in Settings.');
+        if (response.status === 401 || response.status === 500) throw new Error('The AI service is not configured correctly. Please contact the site administrator.');
         if (response.status === 429) throw new Error('Rate limit exceeded. Please try again in a moment.');
         throw new Error(err.error?.message || `API error (${response.status})`);
       }
@@ -200,13 +197,10 @@ export default function PolicyAdvisor({ messages, setMessages }) {
     if (!apiKey) throw new Error('No API key');
     const bylawsText = getBylawsAsText(bylawsData, language);
     const languageLabel = language === 'technical' ? 'standard DEI terminology' : 'plain, student-friendly language';
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/claude', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,

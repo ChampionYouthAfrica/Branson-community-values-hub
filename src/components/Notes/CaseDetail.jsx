@@ -262,13 +262,10 @@ export default function CaseDetail() {
           ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
           : { type: 'image', source: { type: 'base64', media_type: file.type, data: base64 } };
 
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
+        const res = await fetch('/api/claude', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
           },
           body: JSON.stringify({
             model: await getLatestModel(apiKey),

@@ -2,7 +2,9 @@ import { createContext, useContext, useState } from 'react';
 
 const APIKeyContext = createContext();
 
-const DEFAULT_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
+// Calls are proxied through /api/claude — the real key lives server-side in
+// Vercel env vars. This placeholder just satisfies legacy "is a key set" checks.
+const DEFAULT_KEY = 'server-managed';
 
 export function APIKeyProvider({ children }) {
   const [apiKey, setApiKey] = useState(DEFAULT_KEY);

@@ -18,13 +18,7 @@ export async function getLatestModel(apiKey) {
 
   // 2. Fetch available models from Anthropic
   try {
-    const res = await fetch('https://api.anthropic.com/v1/models', {
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-    });
+    const res = await fetch('/api/models');
 
     if (!res.ok) return FALLBACK_MODEL;
 
