@@ -37,7 +37,7 @@ export default function FoodPurchasing() {
         <ArrowLeft size={16} /> Back to Assessments
       </Link>
 
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Food Purchasing Analysis</h1>
+      <h1 className="animate-fade-up text-2xl font-bold text-slate-900 dark:text-white mb-2">Food Purchasing Analysis</h1>
       <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
         Branson strives to use sustainable practices, inclusive to people and planet, in the vendors we work with and the food we provide on campus and at school events.
       </p>

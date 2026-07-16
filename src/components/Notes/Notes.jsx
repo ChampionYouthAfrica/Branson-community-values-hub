@@ -110,7 +110,7 @@ export default function Notes() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-branson-blue/10 dark:bg-branson-blue/20 mb-4">
               <Lock size={28} className="text-branson-blue" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Case Notes</h1>
+            <h1 className="animate-fade-up text-2xl font-bold text-slate-900 dark:text-white">Case Notes</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Enter the master access code to continue
             </p>
@@ -146,7 +146,7 @@ export default function Notes() {
     <div className="max-w-4xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Case Notes</h1>
+          <h1 className="animate-fade-up text-2xl font-bold text-slate-900 dark:text-white">Case Notes</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Collaborative, passcode-protected case documentation
           </p>

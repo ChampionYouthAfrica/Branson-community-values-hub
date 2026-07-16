@@ -1,6 +1,7 @@
 export default function Footer() {
   return (
-    <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-6 py-5 text-center">
+    <footer className="relative border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-6 py-5 text-center">
+      <div className="absolute -top-px inset-x-0 h-px bg-gradient-to-r from-transparent via-branson-blue/50 to-transparent" />
       <p className="text-sm text-slate-500 dark:text-slate-400">
         Made by Drew Kalafatas for{' '}
         <span className="text-branson-blue font-medium">Branson School</span>

@@ -19,7 +19,9 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
   const isBylawsPage = location.pathname === '/bylaws';
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 dark:bg-slate-950/95 backdrop-blur border-b border-slate-200 dark:border-slate-800">
+    <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/70 dark:border-slate-800/70 shadow-sm shadow-slate-900/5">
+      {/* Gradient accent line */}
+      <div className="h-0.5 w-full bg-gradient-to-r from-branson-blue via-branson-green to-branson-blue bg-[length:200%_100%] animate-gradient" />
       <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
           <button
@@ -28,8 +30,8 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <Link to="/" className="flex items-center gap-2 no-underline">
-            <img src={bransonLogo} alt="Branson" className="h-7 w-auto" />
+          <Link to="/" className="group flex items-center gap-2 no-underline">
+            <img src={bransonLogo} alt="Branson" className="h-7 w-auto group-hover:scale-105 transition-transform duration-300" />
             <span className="text-base font-semibold text-slate-400 dark:text-slate-500 hidden sm:inline">
               Community Values Hub
             </span>
@@ -42,10 +44,10 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
               key={item.path}
               to={item.path}
               className={clsx(
-                'px-4 py-2 rounded-lg text-sm font-medium transition-colors no-underline',
+                'link-underline px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-300 no-underline',
                 (location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path)))
-                  ? 'bg-branson-blue/10 text-branson-blue dark:bg-branson-blue/20 dark:text-blue-300'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-branson-blue dark:hover:text-blue-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                  ? 'active text-branson-blue dark:text-blue-300'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-branson-blue dark:hover:text-blue-300'
               )}
             >
               {item.label}

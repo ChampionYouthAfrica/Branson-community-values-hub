@@ -61,7 +61,7 @@ export default function VendorDEI() {
         <ArrowLeft size={16} /> Back to Assessments
       </Link>
 
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">RFP for Vendors DEI Rubric</h1>
+      <h1 className="animate-fade-up text-2xl font-bold text-slate-900 dark:text-white mb-2">RFP for Vendors DEI Rubric</h1>
       <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
         Evaluate vendor DEI practices. Complete the form and receive an AI-powered score with recommendations.
       </p>

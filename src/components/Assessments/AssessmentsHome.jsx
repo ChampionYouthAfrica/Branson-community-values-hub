@@ -31,21 +31,21 @@ const assessments = [
 export default function AssessmentsHome() {
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
-      <div className="text-center mb-10">
+      <div className="text-center mb-10 animate-fade-up">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">Assessment Rubrics</h1>
         <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
           Interactive rubrics for vendor evaluation, dietary equity, and food purchasing — scored by AI with actionable recommendations.
         </p>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-3 stagger-children">
         {assessments.map((item) => (
           <Link
             key={item.to}
             to={item.to}
-            className="group bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-lg hover:border-branson-blue/30 dark:hover:border-branson-blue/40 transition-all duration-200 no-underline"
+            className="group card-lift bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-branson-blue/40 dark:hover:border-branson-blue/50 no-underline"
           >
-            <div className={`w-12 h-12 ${item.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+            <div className={`w-12 h-12 ${item.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-300`}>
               <item.icon size={22} className="text-white" />
             </div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">

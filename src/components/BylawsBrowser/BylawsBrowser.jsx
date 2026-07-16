@@ -164,7 +164,7 @@ export default function BylawsBrowser() {
       <main className="flex-1 overflow-y-auto p-6 lg:p-10">
         <div className="max-w-3xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2">
+            <h1 className="animate-fade-up text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2">
               {bylawsData.title}
             </h1>
             <p className="text-slate-500 dark:text-slate-400 text-sm">{bylawsData.subtitle}</p>

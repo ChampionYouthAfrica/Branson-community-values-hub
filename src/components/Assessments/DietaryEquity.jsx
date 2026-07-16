@@ -27,7 +27,7 @@ export default function DietaryEquity() {
         <ArrowLeft size={16} /> Back to Assessments
       </Link>
 
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Vendor Equity Dietary Considerations</h1>
+      <h1 className="animate-fade-up text-2xl font-bold text-slate-900 dark:text-white mb-2">Vendor Equity Dietary Considerations</h1>
       <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
         This form is designed to assist in identifying how to be most inclusive to all people when providing nutrition.
         Once completed, the form will be scored by AI with recommendations.
