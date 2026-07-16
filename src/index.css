@@ -317,7 +317,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.14) 48%, rgb(255 255 255 / 0.02) 52%, transparent 70%);
+  background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--tile-glow, #38bdf8) 12%, transparent) 48%, transparent 70%);
   transform: translateX(-120%);
   transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;

@@ -13,7 +13,7 @@ const portals = [
     description: 'Search and browse all 12 articles of the Community Values bylaws. Toggle between standard and plain language.',
     cta: 'Browse Bylaws',
     span: 'lg:col-span-3',
-    gradient: 'from-[#003a6b] via-[#004B87] to-[#0a6aa8]',
+    accent: 'blue',
     glow: '#38bdf8',
   },
   {
@@ -24,8 +24,8 @@ const portals = [
     description: "Describe any situation and get instant, bylaws-based guidance with specific section citations. It's like chatting with a colleague who knows every policy.",
     cta: 'Start a Conversation',
     span: 'lg:col-span-3',
-    gradient: 'from-[#064430] via-[#0a5c40] to-[#0e7a52]',
-    glow: '#6ee7b7',
+    accent: 'green',
+    glow: '#34d399',
   },
   {
     to: '/assessments',
@@ -35,8 +35,8 @@ const portals = [
     description: 'Interactive rubrics for vendor evaluation, dietary equity, and food purchasing — scored by AI.',
     cta: 'Start an Assessment',
     span: 'lg:col-span-2',
-    gradient: 'from-[#0f2a43] via-[#17395c] to-[#1f4a75]',
-    glow: '#7dd3fc',
+    accent: 'green',
+    glow: '#34d399',
   },
   {
     to: '/notes',
@@ -46,8 +46,8 @@ const portals = [
     description: 'Passcode-protected collaborative notes with real-time editing and file uploads.',
     cta: 'Open Notes',
     span: 'lg:col-span-2',
-    gradient: 'from-[#1e293b] via-[#334155] to-[#475569]',
-    glow: '#94a3b8',
+    accent: 'blue',
+    glow: '#38bdf8',
   },
   {
     to: '/quick-reference',
@@ -56,8 +56,8 @@ const portals = [
     description: 'Reporting contacts, checklists, training calendar, and crisis hotlines — all in one place.',
     cta: 'View Resources',
     span: 'lg:col-span-2',
-    gradient: 'from-[#06283f] via-[#0b3a5e] to-[#11507f]',
-    glow: '#93c5fd',
+    accent: 'green',
+    glow: '#34d399',
   },
 ];
 
@@ -75,42 +75,60 @@ function PortalTile({ portal, index }) {
     e.currentTarget.style.setProperty('--ry', '0deg');
   }, []);
 
+  const isGreen = portal.accent === 'green';
+
   return (
     <Link
       to={portal.to}
       onMouseMove={handleMove}
       onMouseLeave={handleLeave}
       style={{ '--tile-glow': portal.glow, animationDelay: `${0.1 + index * 0.12}s` }}
-      className={`portal-tile group animate-fade-up bg-gradient-to-br ${portal.gradient} ${portal.span} p-7 lg:p-8 flex flex-col no-underline min-h-[220px]`}
+      className={`portal-tile group animate-fade-up bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 ${portal.span} p-7 lg:p-8 flex flex-col no-underline min-h-[220px]`}
     >
+      {/* Branson accent bar */}
+      <div className={`absolute top-0 left-0 right-0 h-1 ${isGreen ? 'bg-gradient-to-r from-branson-green to-branson-green/40' : 'bg-gradient-to-r from-branson-blue to-branson-blue/40'}`} />
+
       {/* faint bull watermark */}
       <img
         src={bransonBull}
         alt=""
-        className="absolute -right-8 -bottom-8 w-40 opacity-[0.08] group-hover:opacity-[0.14] group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500 pointer-events-none"
+        className="absolute -right-8 -bottom-8 w-40 opacity-[0.05] group-hover:opacity-[0.09] group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500 pointer-events-none"
       />
 
-      <div className="portal-icon-orbit w-14 h-14 rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur flex items-center justify-center mb-5 group-hover:bg-white/25 transition-colors duration-300" style={{ animationDelay: `${index * 0.7}s` }}>
+      <div
+        className={`portal-icon-orbit w-14 h-14 rounded-2xl flex items-center justify-center mb-5 shadow-md transition-colors duration-300 ${
+          isGreen
+            ? 'bg-gradient-to-br from-branson-green to-[#0e7a52] shadow-branson-green/20'
+            : 'bg-gradient-to-br from-branson-blue to-[#0a6aa8] shadow-branson-blue/20'
+        }`}
+        style={{ animationDelay: `${index * 0.7}s` }}
+      >
         <portal.icon size={26} className="text-white" />
       </div>
 
       <div className="flex items-center gap-2.5 mb-2 flex-wrap">
-        <h3 className="text-xl lg:text-2xl font-bold text-white tracking-tight">
+        <h3 className="text-xl lg:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
           {portal.title}
         </h3>
         {portal.badge && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 ring-1 ring-white/30 text-white text-xs font-semibold backdrop-blur">
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+            isGreen
+              ? 'bg-branson-green/10 text-branson-green ring-1 ring-branson-green/25'
+              : 'bg-branson-blue/10 text-branson-blue dark:text-sky-300 ring-1 ring-branson-blue/25'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isGreen ? 'bg-branson-green' : 'bg-branson-blue dark:bg-sky-300'}`} />
             {portal.badge}
           </span>
         )}
       </div>
 
-      <p className="text-sm text-white/75 leading-relaxed mb-6 max-w-md">
+      <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-6 max-w-md">
         {portal.description}
       </p>
 
-      <span className="mt-auto inline-flex items-center gap-1.5 text-sm font-bold text-white group-hover:gap-3 transition-all duration-300">
+      <span className={`mt-auto inline-flex items-center gap-1.5 text-sm font-bold group-hover:gap-3 transition-all duration-300 ${
+        isGreen ? 'text-branson-green' : 'text-branson-blue dark:text-sky-300'
+      }`}>
         {portal.cta}
         <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform duration-300" />
       </span>
