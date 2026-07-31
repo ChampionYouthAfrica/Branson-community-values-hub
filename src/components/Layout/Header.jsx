@@ -12,6 +12,7 @@ const navItems = [
   { path: '/assessments', label: 'Assessments' },
   { path: '/notes', label: 'Case Notes' },
   { path: '/quick-reference', label: 'Quick Reference' },
+  { path: '/admin', label: 'Admin' },
 ];
 
 export default function Header({ sidebarOpen, setSidebarOpen }) {
