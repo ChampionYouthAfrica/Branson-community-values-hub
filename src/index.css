@@ -183,11 +183,8 @@ body {
   100% { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 @keyframes bull-charge {
-  0%, 100% { transform: scale(1); }
-  20% { transform: scale(1.04) rotate(-1.5deg); }
-  40% { transform: scale(0.98) rotate(1.5deg); }
-  60% { transform: scale(1.06) rotate(-1deg); }
-  80% { transform: scale(1.02) rotate(0.5deg); }
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); }
 }
 @keyframes bull-burst {
   to { transform: scale(7); opacity: 0; filter: blur(20px); }
