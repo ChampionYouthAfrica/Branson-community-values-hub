@@ -14,6 +14,10 @@ export async function fetchAdditions(target) {
   return data || [];
 }
 
+export async function fetchAllAdditions() {
+  return fetchAdditions(null);
+}
+
 export async function addAddition({ target, data, source_title }) {
   if (!supabase) throw new Error('Storage is not configured.');
   const { data: row, error } = await supabase

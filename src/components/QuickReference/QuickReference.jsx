@@ -1,5 +1,14 @@
+import { useState, useEffect } from 'react';
 import PageHero from '../Shared/PageHero';
 import { Phone, Calendar, ExternalLink, Mail } from 'lucide-react';
+import { fetchAdditions } from '../../lib/contentAdditions';
+import {
+  contacts as baseContacts,
+  classDeans,
+  calendarEvents as baseEvents,
+  resources as baseResources,
+  mergeQuickRefAdditions,
+} from '../../data/quickReferenceData';
 
 function SectionHeader({ icon: Icon, title, accent = 'blue' }) {
   const bg = accent === 'green' ? 'bg-branson-green/10' : 'bg-branson-blue/10';
@@ -14,37 +23,21 @@ function SectionHeader({ icon: Icon, title, accent = 'blue' }) {
   );
 }
 
-const contacts = [
-  { name: 'Christina Mazzola', title: 'Head of School', email: 'chris_mazzola@branson.org' },
-  { name: 'JuanCarlos Arauz', title: 'Director of Diversity, Equity & Inclusion', email: 'juancarlos_arauz@branson.org' },
-  { name: 'Kelsey Acevedo-Soto, LMFT', title: 'Director of Counseling', email: 'kelsey_acevedo-soto@branson.org' },
-  { name: 'Whitney Livermore', title: 'Dean of Student Life', email: 'whitney_livermore@branson.org' },
-  { name: 'Arthur Lee', title: 'Director of Human Development & Wellness', email: 'arthur_lee@branson.org' },
-];
-
-const classDeans = ['Neha Kamdar', 'Charlotte King', 'Gisella Petrone', 'Maura Vaughn'];
-
-const calendarEvents = [
-  { month: 'Aug', event: 'All-school orientation + community values overview' },
-  { month: 'Sep', event: 'Staff training on supportive environment practices' },
-  { month: 'Oct', event: 'Student leadership workshop' },
-  { month: 'Nov', event: 'Community dialogue sessions' },
-  { month: 'Jan', event: 'Reinforcement training for faculty and staff' },
-  { month: 'Feb', event: 'Student-led awareness week' },
-  { month: 'Mar', event: 'Spring semester checkpoint and assessment' },
-  { month: 'May', event: 'Year-end program review and planning' },
-];
-
-const resources = [
-  { name: 'RAINN National Sexual Assault Hotline', detail: '1-800-656-4673', url: 'https://www.rainn.org' },
-  { name: 'Community Violence Solutions', detail: '(415) 420-0800', url: null },
-  { name: 'Crisis Text Line', detail: 'Text HOME to 741741', url: 'https://www.crisistextline.org' },
-  { name: 'National Suicide Prevention Lifeline', detail: '988 (call or text)', url: 'https://988lifeline.org' },
-  { name: 'StopBullying.gov', detail: 'Federal anti-bullying resources', url: 'https://www.stopbullying.gov' },
-  { name: 'Trevor Project (LGBTQ+ Youth)', detail: '1-866-488-7386', url: 'https://www.thetrevorproject.org' },
-];
-
 export default function QuickReference() {
+  const [{ contacts, calendarEvents, resources }, setData] = useState({
+    contacts: baseContacts,
+    calendarEvents: baseEvents,
+    resources: baseResources,
+  });
+
+  useEffect(() => {
+    let active = true;
+    fetchAdditions('quick-reference')
+      .then((rows) => { if (active && rows.length) setData(mergeQuickRefAdditions(rows)); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
   return (
     <div>
       <PageHero

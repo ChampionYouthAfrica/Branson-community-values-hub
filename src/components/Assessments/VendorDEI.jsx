@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import PageHero from '../Shared/PageHero';
 import { ArrowLeft, Send, Loader2, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -7,9 +7,24 @@ import MatrixQuestion from './MatrixQuestion';
 import AutoResearch from './AutoResearch';
 import ScoreCard from './ScoreCard';
 import useAIScoring from './useAIScoring';
+import { fetchAdditions } from '../../lib/contentAdditions';
 
 export default function VendorDEI() {
+  const [questions, setQuestions] = useState(VENDOR_DEI_QUESTIONS);
   const [answers, setAnswers] = useState({});
+
+  // Merge admin-published vendor rubric criteria on top of the base list.
+  useEffect(() => {
+    let active = true;
+    fetchAdditions('vendor')
+      .then((rows) => {
+        if (!active || !rows.length) return;
+        const extra = rows.map((r) => r.data?.question).filter(Boolean);
+        if (extra.length) setQuestions([...VENDOR_DEI_QUESTIONS, ...extra]);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
   const [confidence, setConfidence] = useState({});
   const [autoFilled, setAutoFilled] = useState(false);
   const [sources, setSources] = useState([]);
@@ -26,7 +41,7 @@ export default function VendorDEI() {
   const { isScoring, scoreResult, scoreError, scoreForm } = useAIScoring();
 
   const answered = Object.keys(answers).length;
-  const total = VENDOR_DEI_QUESTIONS.length;
+  const total = questions.length;
   const progress = Math.round((answered / total) * 100);
 
   const handleAutoFill = (result) => {
@@ -51,7 +66,7 @@ export default function VendorDEI() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await scoreForm('Vendor DEI Rubric', VENDOR_DEI_QUESTIONS, answers,
+    await scoreForm('Vendor DEI Rubric', questions, answers,
       `Vendor: ${fields.vendorName}\nDescription: ${fields.vendorDescription}`);
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
   };
@@ -69,7 +84,7 @@ export default function VendorDEI() {
 
       <AutoResearch
         formType="vendor-dei"
-        questions={VENDOR_DEI_QUESTIONS}
+        questions={questions}
         onAutoFill={handleAutoFill}
       />
 
@@ -169,7 +184,7 @@ export default function VendorDEI() {
           )}
         </div>
         <div className="space-y-3 mb-8">
-          {VENDOR_DEI_QUESTIONS.map((q, i) => (
+          {questions.map((q, i) => (
             <MatrixQuestion
               key={i}
               index={i}

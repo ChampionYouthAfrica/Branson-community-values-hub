@@ -9,15 +9,48 @@ import {
   addKnowledge,
   deleteKnowledge,
 } from '../../lib/knowledge';
-import { structureBylaws } from '../../lib/aiStructure';
-import { fetchAdditions, addAddition, deleteAddition } from '../../lib/contentAdditions';
+import { structureBylaws, structureQuickReference, structureVendorRubric } from '../../lib/aiStructure';
+import { fetchAdditions, fetchAllAdditions, addAddition, deleteAddition } from '../../lib/contentAdditions';
 import bylawsData from '../../data/bylaws-content.json';
+import { contacts, calendarEvents, resources } from '../../data/quickReferenceData';
+import { VENDOR_DEI_QUESTIONS } from '../Assessments/assessmentData';
 
 const ADMIN_CODE = import.meta.env.VITE_ADMIN_CODE || '2008';
 
 // Targets that make physical, structured changes to the site (with an
 // AI-generated preview you approve) rather than just storing AI context.
-const STRUCTURED_TARGETS = { bylaws: 'the Bylaws page' };
+const STRUCTURED_TARGETS = {
+  bylaws: 'the Bylaws page',
+  'quick-reference': 'the Quick Reference page',
+  vendor: 'the Vendor DEI Rubric',
+};
+
+// Shared input styling for preview editors.
+const inp = 'w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm';
+
+// Header label for a preview item, by target kind.
+function previewLabel(kind, s) {
+  if (kind === 'bylaws') {
+    return s.placement === 'new-article'
+      ? `New article: ${s.newArticleTitle || '(untitled)'}`
+      : `Add to Article ${s.articleNumber} — ${s.articleTitle}`;
+  }
+  if (kind === 'quick-reference') {
+    const map = { contact: 'New reporting contact', event: 'New calendar event', resource: 'New external resource' };
+    return map[s.kind] || 'New entry';
+  }
+  if (kind === 'vendor') return 'New rubric criterion';
+  return 'New item';
+}
+
+// Label for a published addition in the list, by target.
+function additionLabel(a) {
+  const d = a.data || {};
+  if (a.target === 'bylaws') return `${d.number || ''} ${d.title || ''}`.trim() || 'Bylaw section';
+  if (a.target === 'quick-reference') return d.name || d.detail || 'Quick Reference entry';
+  if (a.target === 'vendor') return d.question || 'Rubric criterion';
+  return d.title || 'Addition';
+}
 
 export default function AdminUpload() {
   const [unlocked, setUnlocked] = useState(false);
@@ -58,7 +91,7 @@ export default function AdminUpload() {
   };
 
   const loadAdditions = async () => {
-    setAdditions(await fetchAdditions('bylaws'));
+    setAdditions(await fetchAllAdditions());
   };
 
   const handleCode = (e) => {
@@ -130,7 +163,7 @@ export default function AdminUpload() {
     }
   };
 
-  // Structured targets (bylaws): AI drafts deduped sections for you to review.
+  // Structured targets: AI drafts deduped items for you to review before publishing.
   const handleGenerate = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -138,11 +171,22 @@ export default function AdminUpload() {
     setStatus(null);
     setPreview(null);
     try {
-      const result = await structureBylaws(content.trim(), bylawsData);
-      if (!result.sections.length) {
-        setStatus({ type: 'success', msg: 'The AI found no new sections to add — everything in this document appears to already be covered by the existing bylaws.' });
+      let items = [];
+      let skipped = [];
+      if (target === 'bylaws') {
+        const r = await structureBylaws(content.trim(), bylawsData);
+        items = r.sections; skipped = r.skipped;
+      } else if (target === 'quick-reference') {
+        const r = await structureQuickReference(content.trim(), { contacts, calendarEvents, resources });
+        items = r.items; skipped = r.skipped;
+      } else if (target === 'vendor') {
+        const r = await structureVendorRubric(content.trim(), VENDOR_DEI_QUESTIONS);
+        items = r.items; skipped = r.skipped;
       }
-      setPreview(result);
+      if (!items.length) {
+        setStatus({ type: 'success', msg: 'The AI found nothing new to add — everything in this document appears to already be covered.' });
+      }
+      setPreview({ kind: target, items, skipped });
     } catch (err) {
       setStatus({ type: 'error', msg: err.message || 'Could not generate a preview.' });
     } finally {
@@ -152,22 +196,22 @@ export default function AdminUpload() {
 
   const updatePreviewField = (idx, field, value) => {
     setPreview((p) => {
-      const sections = p.sections.map((s, i) => (i === idx ? { ...s, [field]: value } : s));
-      return { ...p, sections };
+      const items = p.items.map((s, i) => (i === idx ? { ...s, [field]: value } : s));
+      return { ...p, items };
     });
   };
 
   const toggleInclude = (idx) => {
     setPreview((p) => {
-      const sections = p.sections.map((s, i) => (i === idx ? { ...s, _exclude: !s._exclude } : s));
-      return { ...p, sections };
+      const items = p.items.map((s, i) => (i === idx ? { ...s, _exclude: !s._exclude } : s));
+      return { ...p, items };
     });
   };
 
   const handlePublish = async () => {
-    const toPublish = preview.sections.filter((s) => !s._exclude);
+    const toPublish = preview.items.filter((s) => !s._exclude);
     if (!toPublish.length) {
-      setStatus({ type: 'error', msg: 'No sections selected to publish.' });
+      setStatus({ type: 'error', msg: 'Nothing selected to publish.' });
       return;
     }
     setPublishing(true);
@@ -175,9 +219,9 @@ export default function AdminUpload() {
     try {
       for (const s of toPublish) {
         const { _exclude, note, ...data } = s;
-        await addAddition({ target: 'bylaws', data, source_title: title.trim() });
+        await addAddition({ target: preview.kind, data, source_title: title.trim() });
       }
-      setStatus({ type: 'success', msg: `Published ${toPublish.length} section(s) to the Bylaws page.` });
+      setStatus({ type: 'success', msg: `Published ${toPublish.length} item(s) to ${STRUCTURED_TARGETS[preview.kind]}.` });
       setPreview(null);
       resetForm();
       loadAdditions();
@@ -347,20 +391,20 @@ export default function AdminUpload() {
               <Upload size={18} />
             )}
             {isStructured
-              ? generating ? 'Generating preview…' : 'Generate section preview'
+              ? generating ? 'Generating preview…' : 'Generate preview'
               : saving ? 'Saving…' : 'Upload'}
           </button>
         </form>
 
         {/* Structured preview → publish */}
-        {isStructured && preview && preview.sections.length > 0 && (
+        {isStructured && preview && preview.items.length > 0 && (
           <div className="mt-6 bg-white dark:bg-slate-900 border-2 border-branson-blue/30 rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-1">
               <Eye size={18} className="text-branson-blue" />
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Preview — new sections to add</h2>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Preview — new additions</h2>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
-              Review and edit below. Uncheck anything you don't want. When you publish, these render on the Bylaws page just like existing sections.
+              Review and edit below. Uncheck anything you don't want. When you publish, these render on {STRUCTURED_TARGETS[preview.kind]} just like existing content.
             </p>
 
             {preview.skipped?.length > 0 && (
@@ -373,26 +417,56 @@ export default function AdminUpload() {
             )}
 
             <div className="space-y-4">
-              {preview.sections.map((s, i) => (
+              {preview.items.map((s, i) => (
                 <div key={i} className={`rounded-xl border p-4 transition-all ${s._exclude ? 'border-slate-200 dark:border-slate-700 opacity-50' : 'border-branson-blue/30 bg-branson-blue/[0.03]'}`}>
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white cursor-pointer">
-                      <input type="checkbox" checked={!s._exclude} onChange={() => toggleInclude(i)} className="accent-branson-blue" />
-                      {s.placement === 'new-article'
-                        ? `New article: ${s.newArticleTitle || '(untitled)'}`
-                        : `Add to Article ${s.articleNumber} — ${s.articleTitle}`}
-                    </label>
-                  </div>
-                  <div className="grid sm:grid-cols-[5rem_1fr] gap-2 mb-2">
-                    <input value={s.number || ''} onChange={(e) => updatePreviewField(i, 'number', e.target.value)} placeholder="No." className="px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                    <input value={s.title || ''} onChange={(e) => updatePreviewField(i, 'title', e.target.value)} placeholder="Section title" className="px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold" />
-                  </div>
-                  {['technical', 'standard', 'simplePlain'].map((f) => (
-                    <div key={f} className="mb-2">
-                      <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{f === 'simplePlain' ? 'plain language' : f}</label>
-                      <textarea value={s[f] || ''} onChange={(e) => updatePreviewField(i, f, e.target.value)} rows={f === 'simplePlain' ? 2 : 3} className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm leading-relaxed" />
+                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white cursor-pointer mb-3">
+                    <input type="checkbox" checked={!s._exclude} onChange={() => toggleInclude(i)} className="accent-branson-blue" />
+                    {previewLabel(preview.kind, s)}
+                  </label>
+
+                  {preview.kind === 'bylaws' && (
+                    <>
+                      <div className="grid sm:grid-cols-[5rem_1fr] gap-2 mb-2">
+                        <input value={s.number || ''} onChange={(e) => updatePreviewField(i, 'number', e.target.value)} placeholder="No." className={inp} />
+                        <input value={s.title || ''} onChange={(e) => updatePreviewField(i, 'title', e.target.value)} placeholder="Section title" className={`${inp} font-semibold`} />
+                      </div>
+                      {['technical', 'standard', 'simplePlain'].map((f) => (
+                        <div key={f} className="mb-2">
+                          <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{f === 'simplePlain' ? 'plain language' : f}</label>
+                          <textarea value={s[f] || ''} onChange={(e) => updatePreviewField(i, f, e.target.value)} rows={f === 'simplePlain' ? 2 : 3} className={`${inp} leading-relaxed`} />
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {preview.kind === 'quick-reference' && (
+                    <div className="space-y-2">
+                      {s.kind === 'contact' && (
+                        <div className="grid sm:grid-cols-3 gap-2">
+                          <input value={s.name || ''} onChange={(e) => updatePreviewField(i, 'name', e.target.value)} placeholder="Name" className={inp} />
+                          <input value={s.role || ''} onChange={(e) => updatePreviewField(i, 'role', e.target.value)} placeholder="Role / title" className={inp} />
+                          <input value={s.email || ''} onChange={(e) => updatePreviewField(i, 'email', e.target.value)} placeholder="Email" className={inp} />
+                        </div>
+                      )}
+                      {s.kind === 'event' && (
+                        <div className="grid sm:grid-cols-[5rem_1fr] gap-2">
+                          <input value={s.month || ''} onChange={(e) => updatePreviewField(i, 'month', e.target.value)} placeholder="Mon" className={inp} />
+                          <input value={s.detail || ''} onChange={(e) => updatePreviewField(i, 'detail', e.target.value)} placeholder="Event" className={inp} />
+                        </div>
+                      )}
+                      {s.kind === 'resource' && (
+                        <div className="grid sm:grid-cols-3 gap-2">
+                          <input value={s.name || ''} onChange={(e) => updatePreviewField(i, 'name', e.target.value)} placeholder="Name" className={inp} />
+                          <input value={s.detail || ''} onChange={(e) => updatePreviewField(i, 'detail', e.target.value)} placeholder="Phone / detail" className={inp} />
+                          <input value={s.url || ''} onChange={(e) => updatePreviewField(i, 'url', e.target.value)} placeholder="URL (optional)" className={inp} />
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  )}
+
+                  {preview.kind === 'vendor' && (
+                    <textarea value={s.question || ''} onChange={(e) => updatePreviewField(i, 'question', e.target.value)} rows={2} placeholder="Rubric criterion" className={`${inp} leading-relaxed`} />
+                  )}
                 </div>
               ))}
             </div>
@@ -403,24 +477,22 @@ export default function AdminUpload() {
               className="mt-5 w-full py-3 bg-branson-green text-white rounded-xl font-semibold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {publishing ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
-              {publishing ? 'Publishing…' : 'Publish to Bylaws page'}
+              {publishing ? 'Publishing…' : `Publish to ${STRUCTURED_TARGETS[preview.kind]}`}
             </button>
           </div>
         )}
 
-        {/* Published bylaw additions */}
+        {/* Published additions (all structured targets) */}
         {additions.length > 0 && (
           <div className="mt-10">
-            <h2 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-4">Published Bylaw Additions</h2>
+            <h2 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-4">Published Additions</h2>
             <div className="space-y-2">
               {additions.map((a) => (
                 <div key={a.id} className="flex items-start justify-between gap-3 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                      {a.data?.number} {a.data?.title}
-                    </p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{additionLabel(a)}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {a.data?.placement === 'new-article' ? `New article: ${a.data?.newArticleTitle}` : `Article ${a.data?.articleNumber} — ${a.data?.articleTitle}`}
+                      <span className="inline-block px-2 py-0.5 rounded-full bg-branson-blue/10 text-branson-blue font-medium">{STRUCTURED_TARGETS[a.target] || a.target}</span>
                     </p>
                   </div>
                   <button onClick={() => handleDeleteAddition(a.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all cursor-pointer shrink-0" title="Remove from site">
