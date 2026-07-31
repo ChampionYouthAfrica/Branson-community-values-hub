@@ -72,8 +72,17 @@ export default function AdminUpload() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) {
-      setStatus({ type: 'error', msg: 'A title and some content are required.' });
+    if (!title.trim()) {
+      setStatus({ type: 'error', msg: 'Please add a title.' });
+      return;
+    }
+    if (!content.trim()) {
+      setStatus({
+        type: 'error',
+        msg: filename
+          ? `No text could be read from "${filename}". Paste the content into the box below, then upload.`
+          : 'Add some content — either paste text or choose a file to read it in.',
+      });
       return;
     }
     setSaving(true);
@@ -163,12 +172,12 @@ export default function AdminUpload() {
             <input
               ref={fileRef}
               type="file"
-              accept=".txt,.md,.markdown,.csv,.json,.html,.pdf"
+              accept=".txt,.md,.markdown,.csv,.json,.html,.pdf,.docx"
               onChange={handleFile}
               className="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-branson-blue/10 file:text-branson-blue hover:file:bg-branson-blue/20 cursor-pointer"
             />
             <p className="text-xs text-slate-400 mt-1">
-              .txt, .md, .csv, .json, or .pdf. The text is extracted below — review or edit it before saving.
+              .txt, .md, .csv, .json, .pdf, or .docx. The text is extracted into the box below — you can also just paste content directly instead of uploading a file.
               {reading && <span className="text-branson-blue"> Reading file…</span>}
             </p>
           </div>

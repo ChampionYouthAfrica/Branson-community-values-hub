@@ -9,6 +9,21 @@ export async function extractTextFromFile(file) {
     return await file.text();
   }
 
+  // Word .docx
+  if (name.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const mammoth = await import('mammoth/mammoth.browser');
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return (result.value || '').trim();
+  }
+
+  // Legacy Word .doc is not supported for text extraction
+  if (name.endsWith('.doc')) {
+    throw new Error(
+      'Old-format .doc files can’t be read directly. Please save it as .docx or .pdf, or paste the text below.'
+    );
+  }
+
   // PDF
   if (name.endsWith('.pdf') || file.type === 'application/pdf') {
     const pdfjs = await import('pdfjs-dist');
@@ -28,6 +43,6 @@ export async function extractTextFromFile(file) {
   }
 
   throw new Error(
-    'Unsupported file type. Please upload a .txt, .md, .csv, .json, or .pdf file — or paste the text directly.'
+    'Unsupported file type. Please upload a .txt, .md, .csv, .json, .pdf, or .docx file — or paste the text directly.'
   );
 }
