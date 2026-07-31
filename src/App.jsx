@@ -15,6 +15,7 @@ import DietaryEquity from './components/Assessments/DietaryEquity';
 import FoodPurchasing from './components/Assessments/FoodPurchasing';
 import Notes from './components/Notes/Notes';
 import CaseDetail from './components/Notes/CaseDetail';
+import AdminUpload from './components/Admin/AdminUpload';
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -47,6 +48,7 @@ export default function App() {
                   <Route path="/notes" element={<Notes />} />
                   <Route path="/notes/:id" element={<CaseDetail />} />
                   <Route path="/quick-reference" element={<QuickReference />} />
+                  <Route path="/admin" element={<AdminUpload />} />
                 </Routes>
               </main>
               <Footer />

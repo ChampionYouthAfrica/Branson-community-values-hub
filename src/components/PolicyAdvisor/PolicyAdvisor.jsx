@@ -7,6 +7,7 @@ import { useAPIKey } from '../../context/APIKeyContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getBylawsAsText } from '../../utils/bylaw-helpers';
 import bylawsData from '../../data/bylaws-content.json';
+import { fetchKnowledgeFor, knowledgeToPromptText } from '../../lib/knowledge';
 import { getLatestModel } from '../../lib/config';
 
 const SUGGESTED_PROMPTS = [
@@ -64,6 +65,16 @@ export default function PolicyAdvisor({ messages, setMessages }) {
   const [autoSpeak, setAutoSpeak] = useState(false);
   const [voiceSupported] = useState(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition));
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [knowledgeText, setKnowledgeText] = useState('');
+
+  // Load admin-uploaded supplemental knowledge for the advisor once on mount.
+  useEffect(() => {
+    let active = true;
+    fetchKnowledgeFor('advisor')
+      .then((docs) => { if (active) setKnowledgeText(knowledgeToPromptText(docs)); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -138,7 +149,7 @@ export default function PolicyAdvisor({ messages, setMessages }) {
     setIsLoading(true);
 
     try {
-      const bylawsText = getBylawsAsText(bylawsData, language);
+      const bylawsText = getBylawsAsText(bylawsData, language) + knowledgeText;
       const languageLabel = language === 'technical' ? 'standard DEI terminology' : 'plain, student-friendly language';
 
       const response = await fetch('/api/claude', {
@@ -195,7 +206,7 @@ export default function PolicyAdvisor({ messages, setMessages }) {
   // Used by VoiceConversation — returns the reply text so it can speak it
   const sendVoiceMessage = useCallback(async (text) => {
     if (!apiKey) throw new Error('No API key');
-    const bylawsText = getBylawsAsText(bylawsData, language);
+    const bylawsText = getBylawsAsText(bylawsData, language) + knowledgeText;
     const languageLabel = language === 'technical' ? 'standard DEI terminology' : 'plain, student-friendly language';
     const response = await fetch('/api/claude', {
       method: 'POST',

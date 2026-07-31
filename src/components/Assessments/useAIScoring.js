@@ -1,13 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAPIKey } from '../../context/APIKeyContext';
 import { calculateScore } from './assessmentData';
 import { getLatestModel } from '../../lib/config';
+import { fetchKnowledgeFor, knowledgeToPromptText } from '../../lib/knowledge';
 
 export default function useAIScoring() {
   const { apiKey } = useAPIKey();
   const [isScoring, setIsScoring] = useState(false);
   const [scoreResult, setScoreResult] = useState(null);
   const [scoreError, setScoreError] = useState(null);
+  const [knowledgeText, setKnowledgeText] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    fetchKnowledgeFor('vendor')
+      .then((docs) => { if (active) setKnowledgeText(knowledgeToPromptText(docs)); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const scoreForm = async (formTitle, questions, answers, extraContext = '') => {
     setIsScoring(true);
@@ -46,7 +56,7 @@ Respond with ONLY valid JSON:
   "strengths": ["strength 1", "strength 2"]
 }
 
-Be specific in recommendations — suggest concrete actions, not vague advice. If most answers are "unknown", recommend starting with the most impactful areas first.`;
+Be specific in recommendations — suggest concrete actions, not vague advice. If most answers are "unknown", recommend starting with the most impactful areas first.` + knowledgeText;
 
       const response = await fetch('/api/claude', {
         method: 'POST',
@@ -105,7 +115,7 @@ Respond with ONLY valid JSON:
   "strengths": ["strength 1", "strength 2"]
 }
 
-Be specific — for unchecked items, recommend concrete steps to address them.`;
+Be specific — for unchecked items, recommend concrete steps to address them.` + knowledgeText;
 
       const response = await fetch('/api/claude', {
         method: 'POST',
