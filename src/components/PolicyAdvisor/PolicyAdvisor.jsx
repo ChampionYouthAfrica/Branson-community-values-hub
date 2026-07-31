@@ -8,6 +8,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { getBylawsAsText } from '../../utils/bylaw-helpers';
 import bylawsData from '../../data/bylaws-content.json';
 import { fetchKnowledgeFor, knowledgeToPromptText } from '../../lib/knowledge';
+import { fetchAdditions } from '../../lib/contentAdditions';
 import { getLatestModel } from '../../lib/config';
 
 const SUGGESTED_PROMPTS = [
@@ -67,11 +68,20 @@ export default function PolicyAdvisor({ messages, setMessages }) {
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [knowledgeText, setKnowledgeText] = useState('');
 
-  // Load admin-uploaded supplemental knowledge for the advisor once on mount.
+  // Load admin-uploaded supplemental knowledge + published bylaw additions.
   useEffect(() => {
     let active = true;
-    fetchKnowledgeFor('advisor')
-      .then((docs) => { if (active) setKnowledgeText(knowledgeToPromptText(docs)); })
+    Promise.all([fetchKnowledgeFor('advisor'), fetchAdditions('bylaws')])
+      .then(([docs, additions]) => {
+        if (!active) return;
+        const addText = additions
+          .map((a) => `Section ${a.data?.number || ''} ${a.data?.title || ''}: ${a.data?.technical || a.data?.standard || ''}`)
+          .join('\n\n');
+        const combined =
+          knowledgeToPromptText(docs) +
+          (addText ? '\n\nADDITIONAL BYLAW SECTIONS (published by administrators):\n\n' + addText : '');
+        setKnowledgeText(combined);
+      })
       .catch(() => {});
     return () => { active = false; };
   }, []);

@@ -5,14 +5,30 @@ import clsx from 'clsx';
 import PageHero from '../Shared/PageHero';
 import { useLanguage } from '../../context/LanguageContext';
 import { getSectionText, searchBylaws } from '../../utils/bylaw-helpers';
-import bylawsData from '../../data/bylaws-content.json';
+import staticBylaws from '../../data/bylaws-content.json';
+import { fetchAdditions, mergeBylawsAdditions } from '../../lib/contentAdditions';
 
 export default function BylawsBrowser() {
   const { language } = useLanguage();
   const location = useLocation();
+  const [bylawsData, setBylawsData] = useState(staticBylaws);
   const [expandedArticles, setExpandedArticles] = useState(
-    bylawsData.articles.map((a) => a.number)
+    staticBylaws.articles.map((a) => a.number)
   );
+
+  // Merge any admin-published bylaw additions from Supabase.
+  useEffect(() => {
+    let active = true;
+    fetchAdditions('bylaws')
+      .then((rows) => {
+        if (!active || !rows.length) return;
+        const merged = mergeBylawsAdditions(staticBylaws, rows);
+        setBylawsData(merged);
+        setExpandedArticles(merged.articles.map((a) => a.number));
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSection, setActiveSection] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);

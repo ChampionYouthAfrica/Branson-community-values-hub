@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Lock, Upload, FileText, Trash2, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Lock, Upload, FileText, Trash2, Loader2, CheckCircle, AlertCircle, Sparkles, Eye } from 'lucide-react';
 import PageHero from '../Shared/PageHero';
 import { extractTextFromFile } from '../../lib/extractText';
 import {
@@ -9,8 +9,15 @@ import {
   addKnowledge,
   deleteKnowledge,
 } from '../../lib/knowledge';
+import { structureBylaws } from '../../lib/aiStructure';
+import { fetchAdditions, addAddition, deleteAddition } from '../../lib/contentAdditions';
+import bylawsData from '../../data/bylaws-content.json';
 
 const ADMIN_CODE = import.meta.env.VITE_ADMIN_CODE || '2008';
+
+// Targets that make physical, structured changes to the site (with an
+// AI-generated preview you approve) rather than just storing AI context.
+const STRUCTURED_TARGETS = { bylaws: 'the Bylaws page' };
 
 export default function AdminUpload() {
   const [unlocked, setUnlocked] = useState(false);
@@ -29,14 +36,29 @@ export default function AdminUpload() {
   const [loadingDocs, setLoadingDocs] = useState(false);
   const fileRef = useRef(null);
 
+  // Bylaws (structured) preview → publish flow
+  const [generating, setGenerating] = useState(false);
+  const [preview, setPreview] = useState(null); // { sections:[...], skipped:[...] }
+  const [publishing, setPublishing] = useState(false);
+  const [additions, setAdditions] = useState([]);
+
+  const isStructured = !!STRUCTURED_TARGETS[target];
+
   useEffect(() => {
-    if (unlocked) loadDocs();
+    if (unlocked) { loadDocs(); loadAdditions(); }
   }, [unlocked]);
+
+  // Clear a stale preview when the target changes.
+  useEffect(() => { setPreview(null); }, [target]);
 
   const loadDocs = async () => {
     setLoadingDocs(true);
     setDocs(await fetchAllKnowledge());
     setLoadingDocs(false);
+  };
+
+  const loadAdditions = async () => {
+    setAdditions(await fetchAdditions('bylaws'));
   };
 
   const handleCode = (e) => {
@@ -70,39 +92,115 @@ export default function AdminUpload() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const validate = () => {
     if (!title.trim()) {
       setStatus({ type: 'error', msg: 'Please add a title.' });
-      return;
+      return false;
     }
     if (!content.trim()) {
       setStatus({
         type: 'error',
         msg: filename
-          ? `No text could be read from "${filename}". Paste the content into the box below, then upload.`
+          ? `No text could be read from "${filename}". Paste the content into the box below, then continue.`
           : 'Add some content — either paste text or choose a file to read it in.',
       });
-      return;
+      return false;
     }
+    return true;
+  };
+
+  // AI-context targets (advisor, vendor, etc.): store raw text.
+  const handleSaveKnowledge = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
     setSaving(true);
     setStatus(null);
     try {
       await addKnowledge({ title: title.trim(), content: content.trim(), target, filename });
       setStatus({ type: 'success', msg: 'Uploaded. This information is now available to the selected part(s) of the site.' });
-      setTitle('');
-      setContent('');
-      setFilename('');
-      if (fileRef.current) fileRef.current.value = '';
+      resetForm();
       loadDocs();
     } catch (err) {
       const hint = /relation .* does not exist|schema cache/i.test(err.message || '')
-        ? ' — the "knowledge_uploads" table may not exist yet in Supabase. Ask your developer to create it.'
+        ? ' — the "knowledge_uploads" table may not exist yet in Supabase.'
         : '';
       setStatus({ type: 'error', msg: (err.message || 'Upload failed.') + hint });
     } finally {
       setSaving(false);
     }
+  };
+
+  // Structured targets (bylaws): AI drafts deduped sections for you to review.
+  const handleGenerate = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setGenerating(true);
+    setStatus(null);
+    setPreview(null);
+    try {
+      const result = await structureBylaws(content.trim(), bylawsData);
+      if (!result.sections.length) {
+        setStatus({ type: 'success', msg: 'The AI found no new sections to add — everything in this document appears to already be covered by the existing bylaws.' });
+      }
+      setPreview(result);
+    } catch (err) {
+      setStatus({ type: 'error', msg: err.message || 'Could not generate a preview.' });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const updatePreviewField = (idx, field, value) => {
+    setPreview((p) => {
+      const sections = p.sections.map((s, i) => (i === idx ? { ...s, [field]: value } : s));
+      return { ...p, sections };
+    });
+  };
+
+  const toggleInclude = (idx) => {
+    setPreview((p) => {
+      const sections = p.sections.map((s, i) => (i === idx ? { ...s, _exclude: !s._exclude } : s));
+      return { ...p, sections };
+    });
+  };
+
+  const handlePublish = async () => {
+    const toPublish = preview.sections.filter((s) => !s._exclude);
+    if (!toPublish.length) {
+      setStatus({ type: 'error', msg: 'No sections selected to publish.' });
+      return;
+    }
+    setPublishing(true);
+    setStatus(null);
+    try {
+      for (const s of toPublish) {
+        const { _exclude, note, ...data } = s;
+        await addAddition({ target: 'bylaws', data, source_title: title.trim() });
+      }
+      setStatus({ type: 'success', msg: `Published ${toPublish.length} section(s) to the Bylaws page.` });
+      setPreview(null);
+      resetForm();
+      loadAdditions();
+    } catch (err) {
+      const hint = /relation .* does not exist|schema cache/i.test(err.message || '')
+        ? ' — the "content_additions" table may not exist yet in Supabase.'
+        : '';
+      setStatus({ type: 'error', msg: (err.message || 'Publish failed.') + hint });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setContent('');
+    setFilename('');
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const handleDeleteAddition = async (id) => {
+    await deleteAddition(id);
+    loadAdditions();
   };
 
   const handleDelete = async (id) => {
@@ -155,7 +253,7 @@ export default function AdminUpload() {
         subtitle="Add information the site's tools will use — bylaws context, Policy Advisor knowledge, vendor guidance, and more."
       />
       <div className="max-w-3xl mx-auto px-6 py-8">
-        <form onSubmit={handleSubmit} className="space-y-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
+        <form onSubmit={isStructured ? handleGenerate : handleSaveKnowledge} className="space-y-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
           <div>
             <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block uppercase tracking-wider">Title *</label>
             <input
@@ -218,6 +316,11 @@ export default function AdminUpload() {
                 </label>
               ))}
             </div>
+            <p className="text-xs text-slate-400 mt-2">
+              {isStructured
+                ? `This target makes real changes to ${STRUCTURED_TARGETS[target]}. The AI will draft new, de-duplicated sections and show you a preview to edit and publish.`
+                : 'This information is stored as context for the AI (e.g. the Policy Advisor or assessment grader) — it does not change the visible pages.'}
+            </p>
           </div>
 
           {status && (
@@ -233,13 +336,101 @@ export default function AdminUpload() {
 
           <button
             type="submit"
-            disabled={saving || reading}
+            disabled={saving || reading || generating}
             className="w-full py-3 bg-branson-blue text-white rounded-xl font-semibold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {saving ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-            {saving ? 'Saving…' : 'Upload'}
+            {isStructured ? (
+              generating ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />
+            ) : saving ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Upload size={18} />
+            )}
+            {isStructured
+              ? generating ? 'Generating preview…' : 'Generate section preview'
+              : saving ? 'Saving…' : 'Upload'}
           </button>
         </form>
+
+        {/* Structured preview → publish */}
+        {isStructured && preview && preview.sections.length > 0 && (
+          <div className="mt-6 bg-white dark:bg-slate-900 border-2 border-branson-blue/30 rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Eye size={18} className="text-branson-blue" />
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Preview — new sections to add</h2>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
+              Review and edit below. Uncheck anything you don't want. When you publish, these render on the Bylaws page just like existing sections.
+            </p>
+
+            {preview.skipped?.length > 0 && (
+              <div className="mb-5 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                <span className="font-semibold">Skipped as already covered:</span>
+                <ul className="list-disc ml-5 mt-1 space-y-0.5">
+                  {preview.skipped.map((s, i) => <li key={i}>{s}</li>)}
+                </ul>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {preview.sections.map((s, i) => (
+                <div key={i} className={`rounded-xl border p-4 transition-all ${s._exclude ? 'border-slate-200 dark:border-slate-700 opacity-50' : 'border-branson-blue/30 bg-branson-blue/[0.03]'}`}>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white cursor-pointer">
+                      <input type="checkbox" checked={!s._exclude} onChange={() => toggleInclude(i)} className="accent-branson-blue" />
+                      {s.placement === 'new-article'
+                        ? `New article: ${s.newArticleTitle || '(untitled)'}`
+                        : `Add to Article ${s.articleNumber} — ${s.articleTitle}`}
+                    </label>
+                  </div>
+                  <div className="grid sm:grid-cols-[5rem_1fr] gap-2 mb-2">
+                    <input value={s.number || ''} onChange={(e) => updatePreviewField(i, 'number', e.target.value)} placeholder="No." className="px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                    <input value={s.title || ''} onChange={(e) => updatePreviewField(i, 'title', e.target.value)} placeholder="Section title" className="px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold" />
+                  </div>
+                  {['technical', 'standard', 'simplePlain'].map((f) => (
+                    <div key={f} className="mb-2">
+                      <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{f === 'simplePlain' ? 'plain language' : f}</label>
+                      <textarea value={s[f] || ''} onChange={(e) => updatePreviewField(i, f, e.target.value)} rows={f === 'simplePlain' ? 2 : 3} className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm leading-relaxed" />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={handlePublish}
+              disabled={publishing}
+              className="mt-5 w-full py-3 bg-branson-green text-white rounded-xl font-semibold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {publishing ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
+              {publishing ? 'Publishing…' : 'Publish to Bylaws page'}
+            </button>
+          </div>
+        )}
+
+        {/* Published bylaw additions */}
+        {additions.length > 0 && (
+          <div className="mt-10">
+            <h2 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-4">Published Bylaw Additions</h2>
+            <div className="space-y-2">
+              {additions.map((a) => (
+                <div key={a.id} className="flex items-start justify-between gap-3 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                      {a.data?.number} {a.data?.title}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {a.data?.placement === 'new-article' ? `New article: ${a.data?.newArticleTitle}` : `Article ${a.data?.articleNumber} — ${a.data?.articleTitle}`}
+                    </p>
+                  </div>
+                  <button onClick={() => handleDeleteAddition(a.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all cursor-pointer shrink-0" title="Remove from site">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Existing uploads */}
         <div className="mt-10">
