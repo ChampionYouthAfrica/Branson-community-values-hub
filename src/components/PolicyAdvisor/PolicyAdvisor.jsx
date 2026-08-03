@@ -651,6 +651,10 @@ export default function PolicyAdvisor({ messages, setMessages }) {
             🎙 Listening — speak your question, then press Send
           </p>
         )}
+        <p className="text-center text-[11px] text-slate-400 dark:text-slate-500 mt-2 flex items-center justify-center gap-1">
+          <AlertCircle size={12} className="shrink-0" />
+          AI can make mistakes. This is guidance, not official policy — always confirm with administration before acting.
+        </p>
       </form>
     </div>
   );
