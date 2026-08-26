@@ -3,6 +3,8 @@ import PageHero from '../Shared/PageHero';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Plus, FileText, Copy, Check, Clock, ArrowRight, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { generateSalt, hashPasscode } from '../../lib/notesCrypto';
+import { redactNames } from '../../lib/redact';
 
 const MASTER_CODE = import.meta.env.VITE_NOTES_MASTER_CODE || '1234';
 
@@ -58,15 +60,23 @@ export default function Notes() {
     }
     setCodeError('');
     setCreating(true);
+    // Never store the passcode in plaintext: store only a validation hash + salt.
+    // The passcode itself becomes the encryption key and is shared out-of-band.
+    const salt = generateSalt();
+    const passcode_hash = await hashPasscode(newCaseCustomCode, salt);
+    // Strip personal names from the title (it is shown in the case list).
+    const safeTitle = await redactNames(newCaseTitle);
     const { data, error: insertError } = await supabase
       .from('cases')
-      .insert([{ title: newCaseTitle, passcode: newCaseCustomCode, content: '' }])
+      .insert([{ title: safeTitle, passcode: null, passcode_hash, salt, content: '' }])
       .select()
       .single();
     if (!insertError && data) {
       setCases((prev) => [data, ...prev]);
       setNewCasePasscode(newCaseCustomCode);
       setNewCaseId(data.id);
+    } else if (insertError) {
+      setCodeError(insertError.message || 'Could not create the case.');
     }
     setCreating(false);
   };

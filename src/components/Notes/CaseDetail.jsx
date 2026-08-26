@@ -7,6 +7,8 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAPIKey } from '../../context/APIKeyContext';
 import { getLatestModel } from '../../lib/config';
+import { deriveKey, hashPasscode, encryptJSON, decryptJSON, isEncrypted } from '../../lib/notesCrypto';
+import { redactNames } from '../../lib/redact';
 
 /* ── Helpers ── */
 const COLORS = [
@@ -50,11 +52,13 @@ export default function CaseDetail() {
   const [caseData, setCaseData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  /* ── Passcode gate ── */
+  /* ── Passcode gate + encryption key ── */
   const [passcodeInput, setPasscodeInput] = useState('');
   const [passcodeError, setPasscodeError] = useState('');
+  const [passcode, setPasscode] = useState(() => sessionStorage.getItem(`case_${id}_pc`) || '');
+  const [cryptoKey, setCryptoKey] = useState(null);
   const [unlocked, setUnlocked] = useState(
-    () => sessionStorage.getItem(`case_${id}`) === 'true'
+    () => sessionStorage.getItem(`case_${id}`) === 'true' && !!sessionStorage.getItem(`case_${id}_pc`)
   );
 
   /* ── Name gate ── */
@@ -90,14 +94,34 @@ export default function CaseDetail() {
       setLoading(true);
       const { data } = await supabase
         .from('cases').select('*').eq('id', id).single();
-      if (data) {
-        setCaseData(data);
-        setEntries(parseContent(data.content));
-      }
+      if (data) setCaseData(data);
       setLoading(false);
     };
     load();
   }, [id]);
+
+  /* ── Re-derive the key from a stored passcode (e.g. after a reload) ── */
+  useEffect(() => {
+    if (caseData && unlocked && passcode && !cryptoKey) {
+      deriveKey(passcode, caseData.salt || caseData.id).then(setCryptoKey).catch(() => {});
+    }
+  }, [caseData, unlocked, passcode, cryptoKey]);
+
+  // If somehow unlocked without a passcode, we can't decrypt — require re-entry.
+  useEffect(() => {
+    if (unlocked && !passcode) setUnlocked(false);
+  }, [unlocked, passcode]);
+
+  /* ── Decrypt (or parse legacy) content into entries ── */
+  useEffect(() => {
+    if (!caseData) return;
+    const c = caseData.content;
+    if (isEncrypted(c)) {
+      if (cryptoKey) decryptJSON(c, cryptoKey).then(setEntries).catch(() => setEntries([]));
+    } else {
+      setEntries(parseContent(c));
+    }
+  }, [caseData, cryptoKey]);
 
   /* ── Polling — guaranteed sync every 2s ── */
   useEffect(() => {
@@ -107,11 +131,19 @@ export default function CaseDetail() {
       if (isLocalChange.current) return; // skip while we're mid-save
       const { data } = await supabase
         .from('cases').select('content').eq('id', id).single();
-      if (data) setEntries(parseContent(data.content));
+      if (!data) return;
+      const c = data.content;
+      if (isEncrypted(c)) {
+        if (cryptoKey) {
+          try { setEntries(await decryptJSON(c, cryptoKey)); } catch { /* ignore */ }
+        }
+      } else {
+        setEntries(parseContent(c));
+      }
     }, 2000);
 
     return () => clearInterval(poll);
-  }, [unlocked, nameConfirmed, id]);
+  }, [unlocked, nameConfirmed, id, cryptoKey]);
 
   /* ── Realtime broadcast (bonus — instant when websocket is alive) ── */
   useEffect(() => {
@@ -148,37 +180,55 @@ export default function CaseDetail() {
     }
   }, [entries.length, nameConfirmed]);
 
-  /* ── Save + broadcast ── */
+  /* ── Save + broadcast (content is encrypted before it touches the DB) ── */
   const saveEntries = useCallback(
     async (next) => {
-      // 1. Broadcast instantly over websocket — other users see it immediately
+      // 1. Broadcast instantly over websocket to the other authorized editors.
       channelRef.current?.send({
         type: 'broadcast',
         event: 'entries_update',
         payload: { entries: next },
       });
-      // 2. Persist to DB (async, doesn't block the UI)
+      // 2. Persist to DB as ciphertext.
+      if (!cryptoKey) return;
       isLocalChange.current = true;
-      await supabase
-        .from('cases')
-        .update({ content: JSON.stringify(next), updated_at: new Date().toISOString() })
-        .eq('id', id);
+      const content = await encryptJSON(next, cryptoKey);
+      const update = { content, updated_at: new Date().toISOString() };
+      // Legacy cases still hold a plaintext passcode — upgrade them: store a
+      // salt + hash and null out the plaintext so the DB no longer holds it.
+      if (caseData && !caseData.salt) {
+        update.salt = caseData.id;
+        update.passcode_hash = await hashPasscode(passcode, caseData.id);
+        update.passcode = null;
+      }
+      await supabase.from('cases').update(update).eq('id', id);
       setTimeout(() => { isLocalChange.current = false; }, 600);
     },
-    [id]
+    [id, cryptoKey, caseData, passcode]
   );
 
   /* ── Handlers ── */
-  const handlePasscode = (e) => {
+  const handlePasscode = async (e) => {
     e.preventDefault();
-    if (caseData && passcodeInput === caseData.passcode) {
-      sessionStorage.setItem(`case_${id}`, 'true');
-      setUnlocked(true);
-      setPasscodeError('');
-    } else {
+    if (!caseData) return;
+    let ok = false;
+    if (caseData.passcode_hash && caseData.salt) {
+      ok = (await hashPasscode(passcodeInput, caseData.salt)) === caseData.passcode_hash;
+    } else if (caseData.passcode != null) {
+      ok = passcodeInput === caseData.passcode; // legacy plaintext
+    }
+    if (!ok) {
       setPasscodeError('Incorrect passcode. Try again.');
       setPasscodeInput('');
+      return;
     }
+    const key = await deriveKey(passcodeInput, caseData.salt || caseData.id);
+    setCryptoKey(key);
+    setPasscode(passcodeInput);
+    sessionStorage.setItem(`case_${id}`, 'true');
+    sessionStorage.setItem(`case_${id}_pc`, passcodeInput);
+    setUnlocked(true);
+    setPasscodeError('');
   };
 
   const handleNameConfirm = (e) => {
@@ -193,10 +243,11 @@ export default function CaseDetail() {
   const handlePost = async () => {
     if (!draftText.trim() || posting) return;
     setPosting(true);
+    const cleanText = await redactNames(draftText.trim());
     const entry = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       author: authorName,
-      text: draftText.trim(),
+      text: cleanText,
       timestamp: new Date().toISOString(),
     };
     const next = [...entries, entry];
@@ -207,9 +258,10 @@ export default function CaseDetail() {
   };
 
   const handleEditSave = async (entryId) => {
+    const cleanText = await redactNames(editingText);
     const next = entries.map((e) =>
       e.id === entryId
-        ? { ...e, text: editingText, editedAt: new Date().toISOString() }
+        ? { ...e, text: cleanText, editedAt: new Date().toISOString() }
         : e
     );
     setEntries(next);
@@ -234,10 +286,11 @@ export default function CaseDetail() {
       // Plain text — read directly
       const reader = new FileReader();
       reader.onload = async (ev) => {
+        const cleanText = await redactNames(ev.target.result);
         const entry = {
           id: `${Date.now()}-upload`,
           author: authorName,
-          text: ev.target.result,
+          text: cleanText,
           timestamp: new Date().toISOString(),
           uploadedFile: file.name,
         };
@@ -288,11 +341,12 @@ export default function CaseDetail() {
         if (!res.ok) throw new Error(`API error ${res.status}`);
         const data = await res.json();
         const extracted = data.content.find((b) => b.type === 'text')?.text || '(No text extracted)';
+        const cleanText = await redactNames(extracted);
 
         const entry = {
           id: `${Date.now()}-upload`,
           author: authorName,
-          text: extracted,
+          text: cleanText,
           timestamp: new Date().toISOString(),
           uploadedFile: file.name,
         };
@@ -308,8 +362,10 @@ export default function CaseDetail() {
   };
 
   const copyPasscode = () => {
-    if (!caseData) return;
-    navigator.clipboard.writeText(caseData.passcode);
+    // Use the passcode entered this session (the DB no longer stores it in plaintext).
+    const pc = passcode || caseData?.passcode;
+    if (!pc) return;
+    navigator.clipboard.writeText(pc);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -565,13 +621,13 @@ export default function CaseDetail() {
             rows={3}
           />
           <div className="flex items-center justify-between px-4 pb-3">
-            <span className="text-xs text-slate-400">⌘↵ to add · syncs live</span>
+            <span className="text-xs text-slate-400">🔒 Names auto-redacted · encrypted · ⌘↵ to add</span>
             <button
               onClick={handlePost}
               disabled={!draftText.trim() || posting}
               className="flex items-center gap-1.5 px-4 py-2 bg-branson-blue text-white rounded-lg text-xs font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity cursor-pointer"
             >
-              <Send size={13} /> Add to Document
+              {posting ? <><Loader2 size={13} className="animate-spin" /> Securing…</> : <><Send size={13} /> Add to Document</>}
             </button>
           </div>
         </div>

@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { APIKeyProvider } from './context/APIKeyContext';
+import { AuthProvider } from './context/AuthContext';
+import LoginGate from './components/Auth/LoginGate';
 import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
 import Home from './components/Home/Home';
@@ -25,7 +27,9 @@ export default function App() {
     <ThemeProvider>
       <LanguageProvider>
         <APIKeyProvider>
+          <AuthProvider>
           <BrowserRouter>
+           <LoginGate>
             <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
               <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
               <main className="flex-1">
@@ -53,7 +57,9 @@ export default function App() {
               </main>
               <Footer />
             </div>
+           </LoginGate>
           </BrowserRouter>
+          </AuthProvider>
         </APIKeyProvider>
       </LanguageProvider>
     </ThemeProvider>

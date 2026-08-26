@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 import LanguageToggle from '../Shared/LanguageToggle';
 import ThemeToggle from '../Shared/ThemeToggle';
 import bransonLogo from '../../assets/branson-logo.svg';
+import { useAuth, AUTH_ENABLED } from '../../context/AuthContext';
 
 const navItems = [
   { path: '/', label: 'Home' },
@@ -18,6 +19,7 @@ const navItems = [
 export default function Header({ sidebarOpen, setSidebarOpen }) {
   const location = useLocation();
   const isBylawsPage = location.pathname === '/bylaws';
+  const { user, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/70 dark:border-slate-800/70 shadow-sm shadow-slate-900/5">
@@ -63,6 +65,15 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
             </div>
           )}
           <ThemeToggle />
+          {AUTH_ENABLED && user && (
+            <button
+              onClick={signOut}
+              title={`Sign out (${user.email})`}
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer"
+            >
+              <LogOut size={18} />
+            </button>
+          )}
         </div>
       </div>
 
