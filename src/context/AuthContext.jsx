@@ -46,19 +46,23 @@ export function AuthProvider({ children }) {
     return () => { active = false; sub.subscription.unsubscribe(); };
   }, []);
 
-  const signInWithGoogle = () =>
-    supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        queryParams: { hd: ALLOWED_DOMAIN, prompt: 'select_account' },
-        redirectTo: window.location.origin,
-      },
+  // Send a one-time login link, but only to a @branson.org address.
+  const signInWithEmail = async (email) => {
+    const e = (email || '').trim().toLowerCase();
+    if (!e.endsWith('@' + ALLOWED_DOMAIN)) {
+      return { error: 'Please use your @branson.org email address.' };
+    }
+    const { error } = await supabase.auth.signInWithOtp({
+      email: e,
+      options: { emailRedirectTo: window.location.origin },
     });
+    return { error: error ? error.message : null };
+  };
 
   const signOut = () => supabase.auth.signOut();
 
   return (
-    <AuthContext.Provider value={{ user, loading, domainError, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, domainError, signInWithEmail, signOut }}>
       {children}
     </AuthContext.Provider>
   );
