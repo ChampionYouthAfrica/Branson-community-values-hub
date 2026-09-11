@@ -7,7 +7,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAPIKey } from '../../context/APIKeyContext';
 import { getLatestModel } from '../../lib/config';
-import { deriveKey, hashPasscode, encryptJSON, decryptJSON, isEncrypted } from '../../lib/notesCrypto';
+import { deriveKey, deriveTitleKey, hashPasscode, encryptJSON, decryptJSON, isEncrypted } from '../../lib/notesCrypto';
 import { redactNames } from '../../lib/redact';
 
 /* ── Helpers ── */
@@ -51,6 +51,8 @@ export default function CaseDetail() {
   /* ── Case data ── */
   const [caseData, setCaseData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [displayTitle, setDisplayTitle] = useState('Case');
+  const upgradedRef = useRef(false);
 
   /* ── Passcode gate + encryption key ── */
   const [passcodeInput, setPasscodeInput] = useState('');
@@ -122,6 +124,29 @@ export default function CaseDetail() {
       setEntries(parseContent(c));
     }
   }, [caseData, cryptoKey]);
+
+  /* ── Decrypt the title (uses the master code stored when the list unlocked) ── */
+  useEffect(() => {
+    if (!caseData) return;
+    const t = caseData.title;
+    if (!isEncrypted(t)) { setDisplayTitle(t || 'Case'); return; }
+    const master = sessionStorage.getItem('notes_master');
+    if (!master) { setDisplayTitle('Case'); return; }
+    deriveTitleKey(master)
+      .then((k) => decryptJSON(t, k))
+      .then(setDisplayTitle)
+      .catch(() => setDisplayTitle('Case'));
+  }, [caseData]);
+
+  /* ── Encrypt legacy plaintext content the moment a case is opened ── */
+  useEffect(() => {
+    if (upgradedRef.current) return;
+    if (!unlocked || !nameConfirmed || !cryptoKey || !caseData) return;
+    if (caseData.content && !isEncrypted(caseData.content) && entries.length > 0) {
+      upgradedRef.current = true;
+      saveEntries(entries);
+    }
+  }, [unlocked, nameConfirmed, cryptoKey, caseData, entries]);
 
   /* ── Polling — guaranteed sync every 2s ── */
   useEffect(() => {
@@ -403,7 +428,7 @@ export default function CaseDetail() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-branson-blue/10 dark:bg-branson-blue/20 mb-4">
               <Lock size={28} className="text-branson-blue" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">{caseData.title}</h1>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">{displayTitle}</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Enter the 4-digit case passcode</p>
           </div>
           <form onSubmit={handlePasscode} className="space-y-4" autoComplete="off">
@@ -438,7 +463,7 @@ export default function CaseDetail() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-branson-green/10 dark:bg-branson-green/20 mb-4">
               <Users size={28} className="text-branson-green" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">{caseData.title}</h1>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">{displayTitle}</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               What's your name? It will be attached to everything you write.
             </p>
@@ -477,7 +502,7 @@ export default function CaseDetail() {
           <Link to="/notes" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-branson-blue mb-1 no-underline">
             <ArrowLeft size={16} /> Back to Cases
           </Link>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">{caseData.title}</h1>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">{displayTitle}</h1>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           {collaborators > 1 && (

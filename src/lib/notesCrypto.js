@@ -43,6 +43,19 @@ export async function deriveKey(passcode, salt) {
   );
 }
 
+// Key for encrypting case TITLES, derived from the Notes master code (which is
+// entered to view the case list). Titles are shared across all cases, so they
+// use one shared key rather than a per-case passcode.
+export function deriveTitleKey(masterCode) {
+  return deriveKey(masterCode, 'notes-title-shared-v1');
+}
+
+// SHA-256 (base64) — used to validate the master code without storing it.
+export async function sha256b64(str) {
+  const h = await crypto.subtle.digest('SHA-256', enc.encode(str));
+  return b64(new Uint8Array(h));
+}
+
 // A validation hash of the passcode (so we never store the passcode itself).
 export async function hashPasscode(passcode, salt) {
   const data = enc.encode('bcvh-auth:' + salt + ':' + passcode);

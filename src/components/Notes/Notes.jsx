@@ -3,15 +3,21 @@ import PageHero from '../Shared/PageHero';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Plus, FileText, Copy, Check, Clock, ArrowRight, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { generateSalt, hashPasscode } from '../../lib/notesCrypto';
+import { generateSalt, hashPasscode, deriveTitleKey, sha256b64, encryptJSON, decryptJSON, isEncrypted } from '../../lib/notesCrypto';
 import { redactNames } from '../../lib/redact';
 
+// Validate the master code by hash if VITE_NOTES_MASTER_HASH is set (keeps the
+// plaintext code out of the shipped bundle); otherwise fall back to the legacy
+// plaintext env var. The master code also derives the title-encryption key.
+const MASTER_HASH = import.meta.env.VITE_NOTES_MASTER_HASH || '';
 const MASTER_CODE = import.meta.env.VITE_NOTES_MASTER_CODE || '1234';
 
 export default function Notes() {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [unlocked, setUnlocked] = useState(false); // always locked on page load — must enter from memory
+  const [titleKey, setTitleKey] = useState(null);
+  const [titles, setTitles] = useState({}); // caseId -> decrypted title
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showNewCase, setShowNewCase] = useState(false);
@@ -26,8 +32,8 @@ export default function Notes() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (unlocked) loadCases();
-  }, [unlocked]);
+    if (unlocked && titleKey) loadCases();
+  }, [unlocked, titleKey]);
 
   const loadCases = async () => {
     if (!supabase) return;
@@ -36,19 +42,40 @@ export default function Notes() {
       .from('cases')
       .select('*')
       .order('created_at', { ascending: false });
-    setCases(data || []);
+    const rows = data || [];
+    setCases(rows);
     setLoading(false);
+
+    // Decrypt titles (and encrypt any legacy plaintext titles in place).
+    const map = {};
+    for (const c of rows) {
+      if (isEncrypted(c.title)) {
+        try { map[c.id] = await decryptJSON(c.title, titleKey); }
+        catch { map[c.id] = '🔒 Encrypted case'; }
+      } else {
+        map[c.id] = c.title || '';
+        // Migrate: encrypt this plaintext title at rest.
+        try {
+          const enc = await encryptJSON(c.title || '', titleKey);
+          await supabase.from('cases').update({ title: enc }).eq('id', c.id);
+        } catch { /* best-effort */ }
+      }
+    }
+    setTitles(map);
   };
 
-  const handleMasterCode = (e) => {
+  const handleMasterCode = async (e) => {
     e.preventDefault();
-    if (input === MASTER_CODE) {
-      setUnlocked(true);
-      setError('');
-    } else {
+    const ok = MASTER_HASH ? (await sha256b64(input)) === MASTER_HASH : input === MASTER_CODE;
+    if (!ok) {
       setError('Incorrect code. Try again.');
       setInput('');
+      return;
     }
+    setTitleKey(await deriveTitleKey(input));
+    sessionStorage.setItem('notes_master', input); // lets CaseDetail decrypt the title
+    setUnlocked(true);
+    setError('');
   };
 
   const handleNewCase = async (e) => {
@@ -64,15 +91,17 @@ export default function Notes() {
     // The passcode itself becomes the encryption key and is shared out-of-band.
     const salt = generateSalt();
     const passcode_hash = await hashPasscode(newCaseCustomCode, salt);
-    // Strip personal names from the title (it is shown in the case list).
+    // Strip personal names from the title, then encrypt it at rest.
     const safeTitle = await redactNames(newCaseTitle);
+    const encTitle = titleKey ? await encryptJSON(safeTitle, titleKey) : safeTitle;
     const { data, error: insertError } = await supabase
       .from('cases')
-      .insert([{ title: safeTitle, passcode: null, passcode_hash, salt, content: '' }])
+      .insert([{ title: encTitle, passcode: null, passcode_hash, salt, content: '' }])
       .select()
       .single();
     if (!insertError && data) {
       setCases((prev) => [data, ...prev]);
+      setTitles((prev) => ({ ...prev, [data.id]: safeTitle }));
       setNewCasePasscode(newCaseCustomCode);
       setNewCaseId(data.id);
     } else if (insertError) {
@@ -290,7 +319,7 @@ export default function Notes() {
                   <FileText size={18} className="text-branson-blue" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-800 dark:text-white">{c.title}</h3>
+                  <h3 className="text-sm font-semibold text-slate-800 dark:text-white">{titles[c.id] ?? (isEncrypted(c.title) ? '🔒 Encrypted case' : c.title)}</h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Clock size={11} className="text-slate-400" />
                     <span className="text-xs text-slate-400">
